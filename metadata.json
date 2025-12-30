@@ -1,0 +1,8 @@
+{
+  "name": "MarcAI Finanças",
+  "description": "Uma plataforma completa de gestão financeira pessoal e empresarial com visão geral, controle de transações, gestão contábil, relatórios detalhados e divisão de gastos.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
