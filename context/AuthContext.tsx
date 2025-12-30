@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [profile, setProfile] = useState<UserProfile | null>(null)
     const [loading, setLoading] = useState(true)
 
-    const fetchProfile = async (email: string | undefined) => {
+    const fetchProfile = async (email: string | undefined, userId: string | undefined) => {
         if (!email) {
             setProfile(null)
             return
@@ -41,11 +41,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 .eq('email', email)
                 .single()
 
-            if (error && error.code !== 'PGRST116') {
-                console.error('Error fetching profile:', error)
-            }
+            if (error) {
+                if (error.code === 'PGRST116' && userId) {
+                    // Profile doesn't exist, create it automatically
+                    const newProfile: UserProfile = {
+                        id: userId,
+                        email: email,
+                        name: email.split('@')[0],
+                        role: 'user',
+                        expiration_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+                    }
 
-            setProfile(data)
+                    const { data: insertedData, error: insertError } = await supabase
+                        .from('user_profiles')
+                        .insert([newProfile])
+                        .select()
+                        .single()
+
+                    if (insertError) {
+                        console.error('Error creating profile:', insertError)
+                        setProfile(null)
+                    } else {
+                        setProfile(insertedData)
+                    }
+                } else {
+                    console.error('Error fetching profile:', error)
+                }
+            } else {
+                setProfile(data)
+            }
         } catch (err) {
             console.error('Unexpected error fetching profile:', err)
             setProfile(null)
@@ -57,7 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setSession(session)
             setUser(session?.user ?? null)
             if (session?.user?.email) {
-                fetchProfile(session.user.email).then(() => setLoading(false))
+                fetchProfile(session.user.email, session.user.id).then(() => setLoading(false))
             } else {
                 setLoading(false)
             }
@@ -68,7 +92,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setUser(session?.user ?? null)
             if (session?.user?.email) {
                 // Only fetch if session changed significantly, but for simplicity we fetch to ensure freshness
-                fetchProfile(session.user.email)
+                fetchProfile(session.user.email, session.user.id)
             } else {
                 setProfile(null)
             }
@@ -87,7 +111,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const refreshProfile = async () => {
         if (user?.email) {
-            await fetchProfile(user.email)
+            await fetchProfile(user.email, user.id)
         }
     }
 

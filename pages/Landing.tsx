@@ -75,7 +75,7 @@ const Landing: React.FC = () => {
                         <p className="text-gray-600 max-w-2xl mx-auto">Ferramentas poderosas desenhadas para simplificar sua vida financeira do zero ao milhão.</p>
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-8">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                         <FeatureCard
                             icon="playlist_add_check"
                             title="Simplicidade e Foco"
@@ -106,7 +106,7 @@ const Landing: React.FC = () => {
                     <h2 className="text-3xl font-bold text-gray-900 mb-4">O que nossos usuários dizem</h2>
                     <p className="text-gray-600 mb-12">Junte-se a mais de 10.000 pessoas que organizaram suas vidas.</p>
 
-                    <div className="grid md:grid-cols-3 gap-8">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                         <TestimonialCard
                             name="Ana Silva"
                             role="Empresária"
