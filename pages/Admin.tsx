@@ -147,7 +147,7 @@ const Admin: React.FC = () => {
     if (loading) return <div className="p-8">Carregando painel...</div>
 
     return (
-        <div className="p-8 max-w-6xl mx-auto">
+        <div className="p-4 md:p-8 max-w-6xl mx-auto pb-24">
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-3xl font-bold text-gray-800">Painel Administrativo</h1>
                 <button onClick={() => navigate('/dashboard')} className="text-emerald-600 hover:underline">Voltar ao App</button>
@@ -198,7 +198,7 @@ const Admin: React.FC = () => {
             </div>
 
             {/* User List */}
-            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="bg-white rounded-xl shadow-md overflow-hidden overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
