@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import Tesseract from 'tesseract.js';
 
 interface Props {
   onClose: () => void;
@@ -14,6 +15,8 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [category, setCategory] = useState(type === 'expense' ? 'Alimentação' : 'Salário');
   const [loading, setLoading] = useState(false);
+  const [processingImage, setProcessingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
 
   // Installment logic
@@ -21,6 +24,73 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
   const [currentInstallment, setCurrentInstallment] = useState(1);
   const [remainingInstallments, setRemainingInstallments] = useState(0);
   const [refMonthShift, setRefMonthShift] = useState(0); // -1: Previous, 0: Current, 1: Next
+
+  const processImage = async (file: File) => {
+    setProcessingImage(true);
+    try {
+      const result = await Tesseract.recognize(file, 'por', {
+        logger: (m) => console.log(m),
+      });
+
+      const text = result.data.text;
+      console.log('OCR Result:', text);
+
+      // Regex para encontrar valores monetários (ex: 50,00, R$ 50,00)
+      const valueRegex = /(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*,\d{2})/g;
+      const valuesFound = text.match(valueRegex);
+
+      // Regex para encontrar datas (ex: 20/12/2024, 2024-12-20)
+      const dateRegex = /(\d{2}\/\d{2}\/\d{4})|(\d{4}-\d{2}-\d{2})/g;
+      const datesFound = text.match(dateRegex);
+
+      if (valuesFound && valuesFound.length > 0) {
+        // Pega o maior valor encontrado, assumindo que é o total
+        // Remove R$, pontos e substitui vírgula por ponto para comparar
+        const cleanValues = valuesFound.map(v => {
+          const raw = v.replace('R$', '').trim().replace(/\./g, '').replace(',', '.');
+          return parseFloat(raw);
+        });
+        const maxVal = Math.max(...cleanValues);
+        setAmount(maxVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+      }
+
+      if (datesFound && datesFound.length > 0) {
+        // Tenta pegar a primeira data encontrada
+        const rawDate = datesFound[0];
+        let isoDate = '';
+        if (rawDate.includes('/')) {
+          const parts = rawDate.split('/');
+          isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        } else {
+          isoDate = rawDate;
+        }
+        // Validate date
+        if (!isNaN(new Date(isoDate).getTime())) {
+          setDate(isoDate);
+        }
+      }
+
+      // Tentativa simples de pegar descrição (primeira linha não vazia que não seja data/valor)
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const possibleDesc = lines.find(l => l.length > 3 && !l.match(valueRegex) && !l.match(dateRegex));
+      if (possibleDesc) {
+        setDescription(possibleDesc.substring(0, 30)); // Limit length
+      }
+
+    } catch (err: any) {
+      console.error('OCR Error:', err);
+      alert('Erro ao processar imagem: ' + err.message);
+    } finally {
+      setProcessingImage(false);
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      processImage(e.target.files[0]);
+    }
+  };
+
 
   const handleSubmit = async () => {
     if (!description || !amount || !date || !user) return;
@@ -84,8 +154,8 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 transition-all">
-        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden border border-gray-100 transition-all">
+        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 flex-shrink-0">
           <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <span className={`material-symbols-outlined ${type === 'expense' ? 'text-expense' : 'text-primary'}`}>
               {type === 'expense' ? 'remove_circle' : 'add_circle'}
@@ -97,7 +167,38 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
           </button>
         </div>
 
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
+          {/* OCR Button */}
+          <div className="flex flex-col items-center justify-center mb-4 gap-2">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={processingImage}
+              className="flex flex-col items-center justify-center w-full py-4 border-2 border-dashed border-gray-300 rounded-lg hover:bg-gray-50 transition-colors gap-2 text-gray-500 hover:text-primary"
+            >
+              {processingImage ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-2xl">progress_activity</span>
+                  <span className="text-xs font-medium">Lendo imagem... Aguarde</span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-2xl">add_a_photo</span>
+                  <span className="text-xs font-medium">Escanear Recibo Individual / Foto (Beta)</span>
+                </>
+              )}
+            </button>
+            <p className="text-[10px] text-gray-400">
+              Para ler faturas completas com vários itens, <a href="/#/smart-import" className="text-primary hover:underline font-bold" onClick={onClose}>use a Importação Inteligente</a>.
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Descrição</label>

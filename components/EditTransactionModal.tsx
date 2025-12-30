@@ -40,25 +40,70 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                 description,
                 amount: numericAmount,
                 category,
+                // Do not update date for 'all' mode as it would overwrite future recurring dates
                 date: editMode === 'only' ? formattedDate : undefined
             };
 
+            // Remove undefined keys
+            Object.keys(updatePayload).forEach(key => updatePayload[key] === undefined && delete updatePayload[key]);
+
             if (editMode === 'only') {
+                // Determine billing_date for this single transaction
                 updatePayload.billing_date = refMonthShift !== 0
                     ? new Date(baseDate.getFullYear(), baseDate.getMonth() + refMonthShift, 1).toISOString().split('T')[0]
                     : null;
-            }
 
-            let query = supabase.from('transactions').update(updatePayload);
+                const { error } = await supabase
+                    .from('transactions')
+                    .update(updatePayload)
+                    .eq('id', transaction.id);
 
-            if (editMode === 'all' && transaction.group_id) {
-                query = query.eq('group_id', transaction.group_id).gte('installment_number', transaction.installment_number);
+                if (error) throw error;
+
             } else {
-                query = query.eq('id', transaction.id);
-            }
+                // Bulk Update (All future installments)
+                if (!transaction.group_id) throw new Error("ID do grupo não encontrado.");
 
-            const { error } = await query;
-            if (error) throw error;
+                // Check if we need to calculate specific billing dates for each installment (if shift is applied)
+                if (refMonthShift !== 0) {
+                    // Fetch all affected installments to calculate their individual billing dates
+                    const { data: installments, error: fetchError } = await supabase
+                        .from('transactions')
+                        .select('id, date')
+                        .eq('group_id', transaction.group_id)
+                        .gte('installment_number', transaction.installment_number);
+
+                    if (fetchError) throw fetchError;
+
+                    // Update each installment individually to respect the relative shift
+                    const updates = installments.map(inst => {
+                        const instDate = new Date(inst.date + 'T00:00:00');
+                        const newBillingDate = new Date(instDate.getFullYear(), instDate.getMonth() + refMonthShift, 1).toISOString().split('T')[0];
+
+                        return supabase
+                            .from('transactions')
+                            .update({ ...updatePayload, billing_date: newBillingDate })
+                            .eq('id', inst.id);
+                    });
+
+                    await Promise.all(updates);
+
+                } else {
+                    // If no shift (current month), set billing_date to null (default) or handle standard update
+                    // Warning: If we want to set it to "Month of the Date", null is usually fine if the system defaults to date.
+                    // But if we explicitly want to RESET it, we set to null.
+
+                    const bulkPayload = { ...updatePayload, billing_date: null };
+
+                    const { error } = await supabase
+                        .from('transactions')
+                        .update(bulkPayload)
+                        .eq('group_id', transaction.group_id)
+                        .gte('installment_number', transaction.installment_number);
+
+                    if (error) throw error;
+                }
+            }
 
             if (onSuccess) onSuccess();
             onClose();
@@ -140,36 +185,29 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                             <div className="flex gap-2">
                                 <button
                                     type="button"
-                                    disabled={editMode === 'all'}
                                     onClick={() => setRefMonthShift(refMonthShift === -1 ? 0 : -1)}
-                                    className={`flex-1 py-3 px-2 rounded-xl text-[10px] font-bold border transition-all flex items-center justify-center gap-1 ${refMonthShift === -1 ? 'bg-orange-500 text-white border-orange-500 shadow-sm shadow-orange-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'} ${editMode === 'all' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    className={`flex-1 py-3 px-2 rounded-xl text-[10px] font-bold border transition-all flex items-center justify-center gap-1 ${refMonthShift === -1 ? 'bg-orange-500 text-white border-orange-500 shadow-sm shadow-orange-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}
                                 >
                                     <span className="material-symbols-outlined text-[14px]">arrow_back</span>
                                     Mês Anterior
                                 </button>
                                 <button
                                     type="button"
-                                    disabled={editMode === 'all'}
                                     onClick={() => setRefMonthShift(0)}
-                                    className={`flex-1 py-3 px-2 rounded-xl text-[10px] font-bold border transition-all flex items-center justify-center gap-1 ${refMonthShift === 0 ? 'bg-orange-500 text-white border-orange-500 shadow-sm shadow-orange-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'} ${editMode === 'all' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    className={`flex-1 py-3 px-2 rounded-xl text-[10px] font-bold border transition-all flex items-center justify-center gap-1 ${refMonthShift === 0 ? 'bg-orange-500 text-white border-orange-500 shadow-sm shadow-orange-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}
                                 >
                                     Mês Atual
                                 </button>
                                 <button
                                     type="button"
-                                    disabled={editMode === 'all'}
                                     onClick={() => setRefMonthShift(refMonthShift === 1 ? 0 : 1)}
-                                    className={`flex-1 py-3 px-2 rounded-xl text-[10px] font-bold border transition-all flex items-center justify-center gap-1 ${refMonthShift === 1 ? 'bg-orange-500 text-white border-orange-500 shadow-sm shadow-orange-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'} ${editMode === 'all' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    className={`flex-1 py-3 px-2 rounded-xl text-[10px] font-bold border transition-all flex items-center justify-center gap-1 ${refMonthShift === 1 ? 'bg-orange-500 text-white border-orange-500 shadow-sm shadow-orange-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}
                                 >
                                     Próximo Mês
                                     <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
                                 </button>
                             </div>
-                            {editMode === 'all' ? (
-                                <p className="mt-2 text-[10px] text-orange-600 italic">* Alteração de mês disponível apenas no modo "Apenas Esta".</p>
-                            ) : (
-                                <p className="mt-2 text-[10px] text-gray-500 italic">* Define em qual mês esta transação será contabilizada no seu orçamento.</p>
-                            )}
+                            <p className="mt-2 text-[10px] text-gray-500 italic">* Define em qual mês esta transação será contabilizada no seu orçamento.</p>
                         </div>
                     </div>
 

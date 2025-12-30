@@ -8,6 +8,7 @@ import Accounting from './pages/Accounting';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import SplitExpenses from './pages/SplitExpenses';
+import SmartImport from './pages/SmartImport';
 import Layout from './components/Layout';
 import Auth from './pages/Auth';
 import Admin from './pages/Admin';
@@ -94,6 +95,7 @@ const App: React.FC = () => {
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/split" element={<SplitExpenses />} />
+              <Route path="/smart-import" element={<SmartImport />} />
               <Route path="/settings" element={<Settings />} />
               {/* Default redirect if user hits root authorized */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
