@@ -116,6 +116,11 @@ const Auth: React.FC = () => {
                     >
                         {isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Entre'}
                     </button>
+                    <div className="mt-4">
+                        <button onClick={() => navigate('/')} className="text-gray-400 hover:text-gray-600 text-sm">
+                            ← Voltar para Home
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

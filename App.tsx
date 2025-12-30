@@ -11,6 +11,7 @@ import SplitExpenses from './pages/SplitExpenses';
 import Layout from './components/Layout';
 import Auth from './pages/Auth';
 import Admin from './pages/Admin';
+import Landing from './pages/Landing';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 
@@ -55,6 +56,7 @@ const ProtectedRoute = () => {
           <div className="flex flex-col gap-3">
             <button onClick={() => window.location.reload()} className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 transition-colors">Verificar Novamente</button>
             <button onClick={signOut} className="text-gray-500 hover:text-gray-700 underline">Sair da Conta</button>
+            <button onClick={() => window.location.href = '/'} className="mt-2 text-sm text-emerald-600 hover:text-emerald-800">Voltar para Home</button>
           </div>
         </div>
       </div>
@@ -70,19 +72,24 @@ const App: React.FC = () => {
     <AuthProvider>
       <HashRouter>
         <Routes>
+          <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
 
           <Route element={<ProtectedRoute />}>
             <Route path="/admin" element={<Admin />} />
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Layout />}>
+              <Route index element={<Dashboard />} />
               <Route path="transactions" element={<Transactions />} />
               <Route path="accounting" element={<Accounting />} />
               <Route path="reports" element={<Reports />} />
               <Route path="split" element={<SplitExpenses />} />
               <Route path="settings" element={<Settings />} />
+              {/* Backward compatibility for direct access if needed, or just keep as is */}
             </Route>
+            {/* Redirect legacy / path if user is logged in? 
+            For now, let's keep it simple. If they go to /, they see landing. 
+            Auth.tsx should redirect to /dashboard. 
+            */}
           </Route>
         </Routes>
       </HashRouter>
