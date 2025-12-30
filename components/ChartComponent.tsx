@@ -35,10 +35,10 @@ const ChartComponent: React.FC<Props> = ({ data = [] }) => {
             </div>
 
             {data.map((item, index) => (
-                <div key={index} className="flex flex-col items-center justify-end h-full z-10 w-full group relative">
-                    {/* Bars Container - Added h-full to allow children heights to work */}
-                    <div className="flex items-end gap-1 w-full justify-center px-1 h-full mb-1">
-                        {/* Tooltip (Combined for both bars to avoid overlap) */}
+                <div key={index} className="flex flex-col items-center justify-end h-full z-10 w-full group relative min-w-0">
+                    {/* Bars Container */}
+                    <div className="flex items-end gap-0.5 sm:gap-1 w-full justify-center px-0.5 sm:px-1 h-full mb-1">
+                        {/* Tooltip */}
                         <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-gray-900/90 backdrop-blur-sm text-white text-[10px] py-1 px-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap pointer-events-none z-30 shadow-xl flex gap-2">
                             <span className="text-emerald-400 font-bold">+{item.income.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
                             <span className="text-red-400 font-bold">-{item.expense.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
@@ -46,17 +46,19 @@ const ChartComponent: React.FC<Props> = ({ data = [] }) => {
 
                         {/* Income Bar */}
                         <div
-                            className="flex-1 max-w-[14px] bg-primary/40 dark:bg-primary/50 rounded-t-[3px] transition-all duration-500 ease-out group-hover:bg-primary origin-bottom"
+                            className="flex-1 max-w-[12px] sm:max-w-[14px] bg-primary/40 dark:bg-primary/50 rounded-t-[2px] sm:rounded-t-[3px] transition-all duration-500 ease-out group-hover:bg-primary origin-bottom"
                             style={{ height: `${(item.income / maxValue) * 100}%` }}
                         ></div>
                         {/* Expense Bar */}
                         <div
-                            className="flex-1 max-w-[14px] bg-red-500/40 dark:bg-red-500/50 rounded-t-[3px] transition-all duration-500 ease-out group-hover:bg-red-500 origin-bottom"
+                            className="flex-1 max-w-[12px] sm:max-w-[14px] bg-red-500/40 dark:bg-red-500/50 rounded-t-[2px] sm:rounded-t-[3px] transition-all duration-500 ease-out group-hover:bg-red-500 origin-bottom"
                             style={{ height: `${(item.expense / maxValue) * 100}%` }}
                         ></div>
                     </div>
                     {/* Month Label */}
-                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 absolute -bottom-1 whitespace-nowrap">{item.label}</span>
+                    <span className="text-[8px] sm:text-[10px] font-bold text-gray-400 dark:text-gray-500 absolute -bottom-1 whitespace-nowrap overflow-hidden text-ellipsis max-w-full text-center">
+                        {item.label.split(' de ')[0]}
+                    </span>
                 </div>
             ))}
         </div>

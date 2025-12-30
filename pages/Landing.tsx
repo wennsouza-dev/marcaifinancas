@@ -1,13 +1,38 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 
 const Landing: React.FC = () => {
     const navigate = useNavigate();
+    const [whatsapp, setWhatsapp] = useState('');
+
+    useEffect(() => {
+        const fetchWhatsApp = async () => {
+            const { data } = await supabase
+                .from('app_settings')
+                .select('value')
+                .eq('key', 'whatsapp_number')
+                .single();
+            if (data) {
+                setWhatsapp(data.value);
+            }
+        };
+        fetchWhatsApp();
+    }, []);
+
+    const handleSaibaMais = () => {
+        if (whatsapp) {
+            const message = encodeURIComponent('Olá! Gostaria de mais informações sobre o app MarcAI Finanças.');
+            window.open(`https://wa.me/${whatsapp}?text=${message}`, '_blank');
+        } else {
+            alert('Contato não configurado pelo administrador.');
+        }
+    };
 
     return (
         <div className="min-h-screen bg-white font-sans text-gray-900">
             {/* Navbar */}
-            <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+            <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 pt-[env(safe-area-inset-top)]">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
                         <div className="flex items-center gap-2">
@@ -47,7 +72,10 @@ const Landing: React.FC = () => {
                     <button onClick={() => navigate('/auth')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-full text-lg font-bold transition-all shadow-xl shadow-emerald-600/30 hover:scale-105">
                         Começar Grátis
                     </button>
-                    <button className="bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 px-8 py-4 rounded-full text-lg font-semibold transition-all hover:border-emerald-200 hover:text-emerald-700">
+                    <button
+                        onClick={handleSaibaMais}
+                        className="bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 px-8 py-4 rounded-full text-lg font-semibold transition-all hover:border-emerald-200 hover:text-emerald-700"
+                    >
                         Saiba Mais
                     </button>
                 </div>
@@ -164,6 +192,20 @@ const Landing: React.FC = () => {
                     </div>
                 </div>
             </footer>
+
+            {/* Floating WhatsApp Button */}
+            <div className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-[60] flex flex-col items-end gap-3 pointer-events-none">
+                <div className="bg-white px-4 py-2 rounded-xl shadow-xl border border-emerald-100 text-emerald-800 text-sm font-bold animate-bounce pointer-events-auto hidden sm:block">
+                    Dúvidas? Saiba mais!
+                </div>
+                <button
+                    onClick={handleSaibaMais}
+                    className="size-14 sm:size-16 bg-emerald-600 text-white rounded-full shadow-2xl shadow-emerald-600/40 flex items-center justify-center hover:bg-emerald-700 transition-all hover:scale-110 active:scale-95 group pointer-events-auto"
+                    title="Fale Conosco"
+                >
+                    <span className="material-symbols-outlined text-3xl group-hover:rotate-12 transition-transform">chat</span>
+                </button>
+            </div>
         </div>
     );
 };

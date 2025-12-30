@@ -18,7 +18,44 @@ const Settings: React.FC = () => {
   const [creatingUser, setCreatingUser] = useState(false);
   const [msg, setMsg] = useState('');
 
+  // App Settings State
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [savingSettings, setSavingSettings] = useState(false);
+
   const isSuperAdmin = user?.email === 'wennsouza@gmail.com';
+
+  React.useEffect(() => {
+    if (isSuperAdmin) {
+      fetchAppSettings();
+    }
+  }, [isSuperAdmin]);
+
+  const fetchAppSettings = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('*')
+      .eq('key', 'whatsapp_number')
+      .single();
+    if (data) {
+      setWhatsappNumber(data.value);
+    }
+  };
+
+  const handleUpdateSettings = async () => {
+    setSavingSettings(true);
+    try {
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert({ key: 'whatsapp_number', value: whatsappNumber, updated_at: new Date().toISOString() });
+      if (error) throw error;
+      setMsg('Configurações atualizadas!');
+    } catch (err) {
+      console.error(err);
+      setMsg('Erro ao atualizar configurações.');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const handleUpdateName = async () => {
     if (!user) return;
@@ -140,7 +177,7 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-6 py-8 md:px-12 md:py-10">
+    <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 md:px-12 md:py-10">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-text-main dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-tight">Configurações</h1>
@@ -200,6 +237,29 @@ const Settings: React.FC = () => {
               </button>
             </form>
             {msg && <p className={`mt-3 text-sm ${msg.includes('Erro') ? 'text-red-500' : 'text-green-600'}`}>{msg}</p>}
+
+            <div className="mt-8 pt-6 border-t border-gray-100 dark:border-white/5">
+              <h3 className="text-md font-bold text-text-main dark:text-white mb-4">Configurações do Aplicativo</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium text-text-secondary">WhatsApp para Contato (DDI + DDD + Numero)</span>
+                  <input
+                    type="text"
+                    value={whatsappNumber}
+                    onChange={e => setWhatsappNumber(e.target.value)}
+                    className="h-11 px-4 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10"
+                    placeholder="5511999999999"
+                  />
+                </label>
+                <button
+                  onClick={handleUpdateSettings}
+                  disabled={savingSettings}
+                  className="h-11 px-6 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                >
+                  {savingSettings ? 'Salvando...' : 'Salvar WhatsApp'}
+                </button>
+              </div>
+            </div>
 
             <div className="mt-8 pt-6 border-t border-gray-100 dark:border-white/5">
               <Admin />

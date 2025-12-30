@@ -162,7 +162,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-6 py-8 md:px-12 md:py-10">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 md:px-12 md:py-10">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
@@ -235,7 +235,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Recent Transactions List */}
-        <div className="bg-white dark:bg-surface-dark rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 p-6 md:p-8 transition-all">
+        <div className="bg-white dark:bg-surface-dark rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 p-4 sm:p-6 md:p-8 transition-all">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-text-main dark:text-white">Transações Recentes</h2>
             <button className="text-sm font-semibold text-primary hover:text-primary-hover transition-colors">Ver tudo</button>
@@ -251,21 +251,21 @@ const Dashboard: React.FC = () => {
             ) : (
               recentTransactions.map((t, i) => (
                 <div key={i} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl transition-colors group cursor-pointer border border-transparent hover:border-gray-100 dark:hover:border-white/5">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-expense'
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-expense'
                       }`}>
                       <span className="material-symbols-outlined text-[20px]">
                         {t.type === 'income' ? 'attach_money' : 'receipt_long'}
                       </span>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-text-main dark:text-white line-clamp-1">{t.description}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(t.date).toLocaleDateString('pt-BR')}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-text-main dark:text-white truncate">{t.description}</p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">{new Date(t.date).toLocaleDateString('pt-BR')}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
                     <div className="flex flex-col items-end">
-                      <span className={`text-sm font-bold ${t.type === 'income' ? 'text-emerald-600' : 'text-expense'
+                      <span className={`text-sm font-bold whitespace-nowrap ${t.type === 'income' ? 'text-emerald-600' : 'text-expense'
                         }`}>
                         {t.type === 'income' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
@@ -276,16 +276,22 @@ const Dashboard: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={() => handleEdit(t)}
-                        className="p-1 hover:text-primary transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(t);
+                        }}
+                        className="p-1.5 hover:text-primary transition-colors"
                       >
                         <span className="material-symbols-outlined text-[18px]">edit</span>
                       </button>
                       <button
-                        onClick={() => handleDelete(t)}
-                        className="p-1 hover:text-expense transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(t);
+                        }}
+                        className="p-1.5 hover:text-expense transition-colors text-gray-300"
                       >
                         <span className="material-symbols-outlined text-[18px]">delete</span>
                       </button>
@@ -298,20 +304,19 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap sm:flex-nowrap gap-3 mb-4">
         <button
           onClick={() => openModal('income')}
-          className="flex-1 min-w-[150px] h-14 bg-primary text-white rounded-xl shadow-lg shadow-primary/20 font-bold hover:bg-primary-hover transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+          className="flex-1 h-12 sm:h-14 bg-primary text-white rounded-xl shadow-lg shadow-primary/20 font-bold hover:bg-primary-hover transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm sm:text-base"
         >
-          <span className="material-symbols-outlined">add_circle</span>
+          <span className="material-symbols-outlined text-xl">add_circle</span>
           Nova Receita
         </button>
         <button
           onClick={() => openModal('expense')}
-          className="flex-1 min-w-[150px] h-14 bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 text-expense rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-white/5 transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+          className="flex-1 h-12 sm:h-14 bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 text-expense rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-white/5 transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm sm:text-base"
         >
-          <span className="material-symbols-outlined">remove_circle</span>
+          <span className="material-symbols-outlined text-xl">remove_circle</span>
           Nova Despesa
         </button>
       </div>

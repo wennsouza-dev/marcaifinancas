@@ -133,7 +133,7 @@ const Transactions: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-6 py-8 md:px-12 md:py-10">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 md:px-12 md:py-10">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-text-main text-3xl md:text-4xl font-black leading-tight tracking-tight">Controle Financeiro</h1>
@@ -317,18 +317,18 @@ const Transactions: React.FC = () => {
                                     t.type === 'income' ? 'account_balance_wallet' : 'shopping_bag'}
                           </span>
                         </div>
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-bold text-text-main dark:text-white line-clamp-1">{t.description}</p>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-bold text-text-main dark:text-white truncate max-w-[120px] sm:max-w-none">{t.description}</p>
                             {t.billing_date && (
-                              <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded border border-blue-100 flex items-center gap-1">
+                              <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded border border-blue-100 flex items-center gap-1 shrink-0">
                                 <span className="material-symbols-outlined text-[12px]">calendar_month</span>
                                 Ref: {new Date(t.billing_date + 'T00:00:00').toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
-                          <span className="text-xs text-gray-400">{t.type === 'income' ? 'Receita recebida' : 'Pagamento realizado'}</span>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400">{new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+                          <span className="text-[10px] text-gray-400 truncate">{t.type === 'income' ? 'Receita recebida' : 'Pagamento realizado'}</span>
                         </div>
                       </div>
                     </td>
