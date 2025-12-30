@@ -12,7 +12,7 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
     const [friends, setFriends] = useState<any[]>([]);
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
-    const [selectedFriend, setSelectedFriend] = useState('');
+    const [selectedFriends, setSelectedFriends] = useState<{ id?: string, name: string }[]>([]);
     const [loading, setLoading] = useState(false);
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -35,20 +35,63 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
         fetchFriends();
     }, [user]);
 
+    const handleAddFriendSelection = (friendId: string) => {
+        if (!friendId) return;
+        const friend = friends.find(f => f.id === friendId);
+        if (friend && !selectedFriends.find(sf => sf.id === friend.id)) {
+            setSelectedFriends([...selectedFriends, { id: friend.id, name: friend.name }]);
+        }
+    };
+
+    const handleRemoveFriendSelection = (index: number) => {
+        const newSelected = [...selectedFriends];
+        newSelected.splice(index, 1);
+        setSelectedFriends(newSelected);
+    };
+
+    const handleAddCustomFriend = () => {
+        const name = prompt('Nome da pessoa:');
+        if (name) {
+            setSelectedFriends([...selectedFriends, { name }]);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user || !amount || !selectedFriend || !description) return;
+        if (!user || !amount || selectedFriends.length === 0 || !description) return;
         setLoading(true);
 
         try {
             const totalAmount = parseFloat(amount);
             const numInstallments = isInstallment ? parseInt(installmentsCount) : 1;
-            const groupId = crypto.randomUUID();
+            const groupId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+            // Prepare friends (create non-existing ones)
+            const resolvedFriends = [];
+            for (const sf of selectedFriends) {
+                if (sf.id) {
+                    resolvedFriends.push(sf);
+                } else {
+                    const { data: newFriend, error: friendError } = await supabase
+                        .from('friends')
+                        .insert([{ user_id: user.id, name: sf.name }])
+                        .select()
+                        .single();
+                    if (friendError) throw friendError;
+                    resolvedFriends.push(newFriend);
+                }
+            }
 
             // Calculate amount per month
             const monthlyTotal = totalAmount / numInstallments;
-            // Amount owed by friend per month
-            const monthlyOwed = splitType === 'half' ? monthlyTotal / 2 : monthlyTotal;
+
+            // Amount owed per friend
+            // If half: Total is shared between User + Friends equally. Each friend owes 1/(N+1)
+            // If full: Total is shared between Friends only. Each friend owes 1/N
+            const divisor = splitType === 'half' ? (resolvedFriends.length + 1) : resolvedFriends.length;
+            const monthlyOwed = monthlyTotal / divisor;
 
             const baseDate = new Date(date + 'T00:00:00');
 
@@ -74,24 +117,26 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
 
                 if (expenseError) throw expenseError;
 
-                // 2. Add Participant
+                // 2. Add Participants
+                const participants = resolvedFriends.map(rf => ({
+                    split_expense_id: expenseData.id,
+                    friend_id: rf.id,
+                    amount_owed: monthlyOwed,
+                    is_paid: false
+                }));
+
                 const { error: participantError } = await supabase
                     .from('split_participants')
-                    .insert([{
-                        split_expense_id: expenseData.id,
-                        friend_id: selectedFriend,
-                        amount_owed: monthlyOwed,
-                        is_paid: false
-                    }]);
+                    .insert(participants);
 
                 if (participantError) throw participantError;
             }
 
             onSuccess();
             onClose();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating split:', error);
-            alert('Erro ao criar rateio. Tente novamente.');
+            alert('Erro ao criar rateio: ' + (error.message || 'Erro desconhecido'));
         } finally {
             setLoading(false);
         }
@@ -144,6 +189,46 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                         />
                     </div>
 
+                    {/* People Selection */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="block text-sm font-medium text-text-secondary">Pessoas Participantes</label>
+                            <button
+                                type="button"
+                                onClick={handleAddCustomFriend}
+                                className="text-xs text-primary font-bold hover:underline flex items-center gap-1"
+                            >
+                                <span className="material-symbols-outlined text-[14px]">add</span>
+                                Nova Pessoa
+                            </button>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 mb-3">
+                            {selectedFriends.map((sf, idx) => (
+                                <div key={idx} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold">
+                                    <span>{sf.name}</span>
+                                    <button type="button" onClick={() => handleRemoveFriendSelection(idx)} className="hover:text-red-500">
+                                        <span className="material-symbols-outlined text-[14px]">close</span>
+                                    </button>
+                                </div>
+                            ))}
+                            {selectedFriends.length === 0 && (
+                                <p className="text-[10px] text-gray-500 italic">Ninguém selecionado.</p>
+                            )}
+                        </div>
+
+                        <select
+                            onChange={(e) => handleAddFriendSelection(e.target.value)}
+                            value=""
+                            className="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm text-text-main dark:text-white"
+                        >
+                            <option value="">Adicionar da lista...</option>
+                            {friends.map(f => (
+                                <option key={f.id} value={f.id} disabled={selectedFriends.some(sf => sf.id === f.id)}>{f.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
                     <div>
                         <label className="block text-sm font-medium text-text-secondary mb-2">Como deseja dividir?</label>
                         <div className="grid grid-cols-2 gap-2">
@@ -152,34 +237,21 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                                 onClick={() => setSplitType('half')}
                                 className={`py-2 rounded-lg border text-sm font-bold transition-all ${splitType === 'half' ? 'bg-primary border-primary text-white' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-400'}`}
                             >
-                                50/50
+                                {selectedFriends.length > 1 ? 'Partes Iguais (Incluindo Eu)' : '50/50'}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setSplitType('full')}
                                 className={`py-2 rounded-lg border text-sm font-bold transition-all ${splitType === 'full' ? 'bg-primary border-primary text-white' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-400'}`}
                             >
-                                Tudo para Amigo
+                                {selectedFriends.length > 1 ? 'Só entre Amigos' : 'Tudo para Amigo'}
                             </button>
                         </div>
                         <p className="text-[10px] text-gray-500 mt-2 px-1">
-                            {splitType === 'half' ? 'O amigo deve metade do valor total.' : 'O amigo deve o valor total integralmente.'}
+                            {splitType === 'half'
+                                ? `O valor será dividido igualmente entre você e ${selectedFriends.length === 1 ? 'o amigo' : 'os amigos'}.`
+                                : `O valor será dividido integralmente entre ${selectedFriends.length === 1 ? 'o amigo' : 'os amigos'}.`}
                         </p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-1">Pessoa</label>
-                        <select
-                            value={selectedFriend}
-                            onChange={(e) => setSelectedFriend(e.target.value)}
-                            className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-medium text-text-main dark:text-white"
-                            required
-                        >
-                            <option value="">Selecione...</option>
-                            {friends.map(f => (
-                                <option key={f.id} value={f.id}>{f.name}</option>
-                            ))}
-                        </select>
                     </div>
 
                     {/* Installments Toggle */}
@@ -240,7 +312,7 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                         </button>
                         <button
                             type="submit"
-                            disabled={loading || friends.length === 0}
+                            disabled={loading || selectedFriends.length === 0}
                             className="flex-1 py-3 rounded-xl font-bold text-white bg-primary hover:bg-primary-hover shadow-lg shadow-primary/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? 'Criando...' : 'Criar Rateio'}

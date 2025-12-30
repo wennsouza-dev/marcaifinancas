@@ -3,6 +3,8 @@ import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import AddFriendModal from '../components/AddFriendModal';
 import NewSplitModal from '../components/NewSplitModal';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const SplitExpenses: React.FC = () => {
   const { user } = useAuth();
@@ -58,7 +60,10 @@ const SplitExpenses: React.FC = () => {
                     amount,
                     date,
                     created_by,
-                    billing_date
+                    billing_date,
+                    group_id,
+                    installment_number,
+                    total_installments
                 ),
                 friends (
                     id,
@@ -201,6 +206,53 @@ const SplitExpenses: React.FC = () => {
     }
   };
 
+  const handleExportPDF = (friendFilter?: any) => {
+    const doc = new jsPDF();
+    const monthName = months[selectedMonth];
+    const reportTitle = friendFilter
+      ? `Relatório de Rateio - ${friendFilter.name} (${monthName} ${selectedYear})`
+      : `Relatório de Rateio - Geral (${monthName} ${selectedYear})`;
+
+    doc.setFontSize(22);
+    doc.setTextColor(26, 96, 32); // Primary green
+    doc.text(reportTitle, 14, 22);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
+
+    const activitiesToExport = friendFilter
+      ? recentActivities.filter(act => act.friends?.id === friendFilter.id)
+      : recentActivities;
+
+    const totalToReceive = activitiesToExport.reduce((acc, act) => acc + Number(act.amount_owed), 0);
+
+    autoTable(doc, {
+      startY: 40,
+      head: [['Descrição', 'Pessoa', 'Valor', 'Data Lançamento', 'Referência']],
+      body: activitiesToExport.map(act => [
+        act.split_expenses?.description || 'Despesa',
+        act.friends?.name || '-',
+        `R$ ${Number(act.amount_owed).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+        act.split_expenses?.date ? new Date(act.split_expenses.date).toLocaleDateString('pt-BR') : '-',
+        act.split_expenses?.billing_date ? new Date(act.split_expenses.billing_date + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : '-'
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: [26, 96, 32] }
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFontSize(14);
+    doc.setTextColor(0);
+    doc.text(`Total a Receber: R$ ${totalToReceive.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 14, finalY);
+
+    const fileName = friendFilter
+      ? `Relatorio_Rateio_${friendFilter.name.replace(/\s+/g, '_')}_${monthName}_${selectedYear}.pdf`
+      : `Relatorio_Rateio_Geral_${monthName}_${selectedYear}.pdf`;
+
+    doc.save(fileName);
+  };
+
   return (
     <div className="animate-fade-in w-full max-w-[1440px] mx-auto px-4 md:px-10 py-8">
       <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -252,6 +304,15 @@ const SplitExpenses: React.FC = () => {
         >
           {years.map(y => <option key={y} value={y} className="bg-white dark:bg-surface-dark">{y}</option>)}
         </select>
+        <div className="ml-auto">
+          <button
+            onClick={() => handleExportPDF()}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-200 dark:border-red-500/20"
+          >
+            <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+            Exportar Geral
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -335,6 +396,7 @@ const SplitExpenses: React.FC = () => {
                     amount={`R$ ${fb.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                     initials={fb.name.substring(0, 2).toUpperCase()}
                     gradient="from-blue-400 to-blue-600"
+                    onExport={() => handleExportPDF({ id: Object.keys(recentActivities.reduce((acc, act) => { if (act.friends?.name === fb.name) acc[act.friends.id] = true; return acc; }, {} as any))[0], name: fb.name })}
                   />
                 ))
               )}
@@ -418,7 +480,7 @@ const ActivityItem: React.FC<{ title: string, details: string, amount: string, l
   </div>
 );
 
-const PersonBalance: React.FC<{ name: string, details: string, amount: string, initials: string, gradient: string }> = ({ name, details, amount, initials, gradient }) => (
+const PersonBalance: React.FC<{ name: string, details: string, amount: string, initials: string, gradient: string, onExport?: () => void }> = ({ name, details, amount, initials, gradient, onExport }) => (
   <div className="flex items-center justify-between group">
     <div className="flex items-center gap-3">
       <div className={`size-9 rounded-full bg-gradient-to-br flex items-center justify-center text-white font-bold text-xs ${gradient}`}>
@@ -429,7 +491,18 @@ const PersonBalance: React.FC<{ name: string, details: string, amount: string, i
         <p className="text-xs text-gray-500">{details}</p>
       </div>
     </div>
-    <span className="text-sm font-bold text-primary">{amount}</span>
+    <div className="flex items-center gap-3">
+      <span className="text-sm font-bold text-primary">{amount}</span>
+      {onExport && (
+        <button
+          onClick={onExport}
+          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-all opacity-0 group-hover:opacity-100"
+          title="Exportar PDF para esta pessoa"
+        >
+          <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+        </button>
+      )}
+    </div>
   </div>
 );
 

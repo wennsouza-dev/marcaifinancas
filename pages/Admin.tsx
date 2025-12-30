@@ -11,6 +11,7 @@ const Admin: React.FC = () => {
     const [newEmail, setNewEmail] = useState('')
     const [newName, setNewName] = useState('')
     const [daysOfAccess, setDaysOfAccess] = useState(30)
+    const [editingUser, setEditingUser] = useState<UserProfile | null>(null)
     const { profile } = useAuth()
     const navigate = useNavigate()
 
@@ -68,6 +69,31 @@ const Admin: React.FC = () => {
         }
     }
 
+    const handleSaveUser = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!editingUser) return
+
+        try {
+            const { error } = await supabase
+                .from('user_profiles')
+                .update({
+                    name: editingUser.name,
+                    email: editingUser.email,
+                    role: editingUser.role,
+                    expiration_date: editingUser.expiration_date
+                })
+                .eq('id', editingUser.id)
+
+            if (error) throw error
+
+            setUsers(users.map(u => u.id === editingUser.id ? editingUser : u))
+            setEditingUser(null)
+            alert('Usuário atualizado com sucesso!')
+        } catch (error: any) {
+            alert('Erro ao atualizar usuário: ' + error.message)
+        }
+    }
+
     const handleDeleteUser = async (id: string) => {
         if (!confirm('Tem certeza que deseja remover este usuário?')) return;
 
@@ -86,18 +112,23 @@ const Admin: React.FC = () => {
 
     const updateExpiration = async (id: string, days: number) => {
         try {
-            const expirationDate = new Date()
-            expirationDate.setDate(expirationDate.getDate() + days)
+            const profile = users.find(u => u.id === id);
+            if (!profile) return;
+
+            const baseDate = profile.expiration_date ? new Date(profile.expiration_date) : new Date();
+            if (baseDate < new Date()) baseDate.setTime(new Date().getTime());
+
+            baseDate.setDate(baseDate.getDate() + days)
 
             const { error } = await supabase
                 .from('user_profiles')
-                .update({ expiration_date: expirationDate.toISOString() })
+                .update({ expiration_date: baseDate.toISOString() })
                 .eq('id', id)
 
             if (error) throw error
 
             // Optimistic update
-            setUsers(users.map(u => u.id === id ? { ...u, expiration_date: expirationDate.toISOString() } : u))
+            setUsers(users.map(u => u.id === id ? { ...u, expiration_date: baseDate.toISOString() } : u))
         } catch (error: any) {
             alert('Erro ao atualizar validade: ' + error.message)
         }
@@ -109,7 +140,7 @@ const Admin: React.FC = () => {
         const now = new Date()
         const diffTime = expiration.getTime() - now.getTime()
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-        if (diffDays < 0) return 'Expirado'
+        if (diffDays <= 0) return 'Expirado'
         return `${diffDays} dias`
     }
 
@@ -208,6 +239,7 @@ const Admin: React.FC = () => {
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <button onClick={() => setEditingUser(user)} className="text-blue-600 hover:text-blue-900 mr-4">Editar</button>
                                     <button onClick={() => updateExpiration(user.id, 30)} className="text-indigo-600 hover:text-indigo-900 mr-4">Renovar (+30)</button>
                                     <button onClick={() => handleDeleteUser(user.id)} className="text-red-600 hover:text-red-900">Remover</button>
                                 </td>
@@ -216,6 +248,71 @@ const Admin: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+
+            {/* Edit User Modal */}
+            {editingUser && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full">
+                        <h2 className="text-xl font-bold mb-4 text-gray-800">Editar Usuário</h2>
+                        <form onSubmit={handleSaveUser} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                                <input
+                                    type="text"
+                                    value={editingUser.name}
+                                    onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    value={editingUser.email}
+                                    onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Cargo (Role)</label>
+                                <select
+                                    value={editingUser.role}
+                                    onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as 'admin' | 'user' })}
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                                >
+                                    <option value="user">User</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Validade (Data)</label>
+                                <input
+                                    type="date"
+                                    value={editingUser.expiration_date ? new Date(editingUser.expiration_date).toISOString().split('T')[0] : ''}
+                                    onChange={(e) => setEditingUser({ ...editingUser, expiration_date: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                                />
+                            </div>
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingUser(null)}
+                                    className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+                                >
+                                    Salvar Alterações
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
