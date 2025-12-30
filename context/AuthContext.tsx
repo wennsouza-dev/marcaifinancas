@@ -42,14 +42,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 .single()
 
             if (error) {
-                if (error.code === 'PGRST116' && userId) {
-                    // Profile doesn't exist, create it automatically
+                if (error.code === 'PGRST116' && userId && email === 'wennsouza@gmail.com') {
+                    // Special case: valid admin user, create profile if missing
                     const newProfile: UserProfile = {
                         id: userId,
                         email: email,
-                        name: email.split('@')[0],
-                        role: 'user',
-                        expiration_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+                        name: 'Admin',
+                        role: 'admin',
+                        expiration_date: null // Admin never expires
                     }
 
                     const { data: insertedData, error: insertError } = await supabase
@@ -59,13 +59,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         .single()
 
                     if (insertError) {
-                        console.error('Error creating profile:', insertError)
+                        console.error('Error creating admin profile:', insertError)
                         setProfile(null)
                     } else {
                         setProfile(insertedData)
                     }
                 } else {
-                    console.error('Error fetching profile:', error)
+                    // Profile doesn't exist and not the super admin -> Access Denied (profile is null)
+                    setProfile(null)
                 }
             } else {
                 setProfile(data)

@@ -12,7 +12,7 @@ const Layout: React.FC = () => {
     { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
     { label: 'Transações', path: '/transactions', icon: 'receipt_long' },
     { label: 'Dividir Gastos', path: '/split', icon: 'call_split' },
-    { label: 'Escritório', path: '/accounting', icon: 'account_balance' },
+
     { label: 'Relatórios', path: '/reports', icon: 'pie_chart' },
     { label: 'Configurações', path: '/settings', icon: 'settings' },
   ];
@@ -28,17 +28,16 @@ const Layout: React.FC = () => {
             </div>
             <h1 className="text-primary dark:text-white text-xl font-bold leading-tight tracking-tight">MarcAI Finanças</h1>
           </div>
-          
+
           <nav className="hidden md:flex flex-1 justify-center gap-6">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  isActive(item.path) 
-                    ? 'text-primary dark:text-primary-light font-bold border-b-2 border-primary' 
+                className={`text-sm font-medium transition-colors hover:text-primary ${isActive(item.path)
+                    ? 'text-primary dark:text-primary-light font-bold border-b-2 border-primary'
                     : 'text-text-main dark:text-white'
-                }`}
+                  }`}
               >
                 {item.label}
               </Link>
@@ -55,8 +54,8 @@ const Layout: React.FC = () => {
                 <span className="text-sm font-semibold text-text-main dark:text-white group-hover:text-primary transition-colors">Marco Silva</span>
                 <span className="text-xs text-gray-500">Premium Plan</span>
               </div>
-              <div 
-                className="size-10 rounded-full bg-cover bg-center border-2 border-primary/20" 
+              <div
+                className="size-10 rounded-full bg-cover bg-center border-2 border-primary/20"
                 style={{ backgroundImage: 'url("https://picsum.photos/seed/user123/100/100")' }}
               ></div>
             </div>
@@ -75,16 +74,15 @@ const Layout: React.FC = () => {
           <Link
             key={item.path}
             to={item.path}
-            className={`flex flex-col items-center gap-1 ${
-              isActive(item.path) ? 'text-primary' : 'text-gray-500'
-            }`}
+            className={`flex flex-col items-center gap-1 ${isActive(item.path) ? 'text-primary' : 'text-gray-500'
+              }`}
           >
             <span className={`material-symbols-outlined ${isActive(item.path) ? 'filled' : ''}`}>{item.icon}</span>
             <span className="text-[10px]">{item.label}</span>
           </Link>
         ))}
       </nav>
-      
+
       <footer className="hidden md:block py-6 text-center text-sm text-gray-400 dark:text-gray-600">
         © 2024 MarcAI Finanças. Todos os direitos reservados.
       </footer>

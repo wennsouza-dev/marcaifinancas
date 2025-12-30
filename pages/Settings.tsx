@@ -1,7 +1,12 @@
-
 import React from 'react';
+import { useAuth } from '../context/AuthContext';
+import Admin from './Admin';
 
 const Settings: React.FC = () => {
+  const { user } = useAuth();
+
+  const isSuperAdmin = user?.email === 'wennsouza@gmail.com';
+
   return (
     <div className="animate-fade-in w-full max-w-5xl mx-auto px-6 py-8 md:px-12 md:py-10">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
@@ -10,6 +15,18 @@ const Settings: React.FC = () => {
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">Gerencie sua conta e preferências de visualização</p>
         </div>
       </div>
+
+      {isSuperAdmin && (
+        <div className="mb-12">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-white/5 flex items-center gap-2 bg-purple-50 dark:bg-purple-900/20 rounded-t-xl mx-0">
+            <span className="material-symbols-outlined text-purple-600 dark:text-purple-400">admin_panel_settings</span>
+            <h2 className="text-purple-900 dark:text-purple-100 text-lg font-bold leading-tight">Painel Administrativo</h2>
+          </div>
+          <div className="bg-white dark:bg-surface-dark border border-t-0 border-gray-200 dark:border-white/5 rounded-b-xl shadow-sm overflow-hidden">
+            <Admin />
+          </div>
+        </div>
+      )}
 
       {/* User Data Section */}
       <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-gray-200 dark:border-white/5 mb-6 overflow-hidden">
@@ -22,14 +39,14 @@ const Settings: React.FC = () => {
             <label className="flex flex-col gap-1.5">
               <span className="text-text-main dark:text-gray-200 text-sm font-medium">Nome Completo</span>
               <div className="relative">
-                <input className="w-full h-12 px-4 rounded-lg bg-white dark:bg-background-dark border border-gray-200 dark:border-white/10 text-text-main dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" type="text" defaultValue="Marco Silva"/>
+                <input className="w-full h-12 px-4 rounded-lg bg-white dark:bg-background-dark border border-gray-200 dark:border-white/10 text-text-main dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" type="text" defaultValue="Marco Silva" />
                 <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl pointer-events-none">edit</span>
               </div>
             </label>
             <label className="flex flex-col gap-1.5">
               <span className="text-text-main dark:text-gray-200 text-sm font-medium">Email</span>
               <div className="relative">
-                <input className="w-full h-12 px-4 rounded-lg bg-white dark:bg-background-dark border border-gray-200 dark:border-white/10 text-text-main dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" type="email" defaultValue="marco@exemplo.com"/>
+                <input className="w-full h-12 px-4 rounded-lg bg-white dark:bg-background-dark border border-gray-200 dark:border-white/10 text-text-main dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" type="email" defaultValue="marco@exemplo.com" />
                 <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl pointer-events-none">mail</span>
               </div>
             </label>
@@ -53,17 +70,17 @@ const Settings: React.FC = () => {
           <h2 className="text-text-main dark:text-white text-lg font-bold leading-tight">Preferências de visualização</h2>
         </div>
         <div className="p-6 flex flex-col gap-6">
-          <ToggleItem 
-            icon="dark_mode" 
-            title="Modo Escuro" 
-            description="Alternar entre tema claro e escuro" 
-            checked={false} 
+          <ToggleItem
+            icon="dark_mode"
+            title="Modo Escuro"
+            description="Alternar entre tema claro e escuro"
+            checked={false}
           />
-          <ToggleItem 
-            icon="notifications" 
-            title="Notificações por Email" 
-            description="Receba resumos semanais" 
-            checked={true} 
+          <ToggleItem
+            icon="notifications"
+            title="Notificações por Email"
+            description="Receba resumos semanais"
+            checked={true}
           />
         </div>
       </div>

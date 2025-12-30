@@ -24,6 +24,11 @@ const ProtectedRoute = () => {
     return <Navigate to="/auth" replace />;
   }
 
+  // Super Admin Bypass
+  if (session.user.email === 'wennsouza@gmail.com') {
+    return <Outlet />;
+  }
+
   // Access Control Logic
   if (profile) {
     if (profile.expiration_date) {
@@ -80,7 +85,7 @@ const App: React.FC = () => {
             <Route path="/dashboard" element={<Layout />}>
               <Route index element={<Dashboard />} />
               <Route path="transactions" element={<Transactions />} />
-              <Route path="accounting" element={<Accounting />} />
+
               <Route path="reports" element={<Reports />} />
               <Route path="split" element={<SplitExpenses />} />
               <Route path="settings" element={<Settings />} />
