@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 
 const Layout: React.FC = () => {
   const location = useLocation();
@@ -35,8 +36,8 @@ const Layout: React.FC = () => {
                 key={item.path}
                 to={item.path}
                 className={`text-sm font-medium transition-colors hover:text-primary ${isActive(item.path)
-                    ? 'text-primary dark:text-primary-light font-bold border-b-2 border-primary'
-                    : 'text-text-main dark:text-white'
+                  ? 'text-primary dark:text-primary-light font-bold border-b-2 border-primary'
+                  : 'text-text-main dark:text-white'
                   }`}
               >
                 {item.label}
@@ -49,6 +50,7 @@ const Layout: React.FC = () => {
               <span className="material-symbols-outlined text-[24px]">notifications</span>
               <span className="absolute top-2 right-2 size-2 bg-danger rounded-full border-2 border-white dark:border-background-dark"></span>
             </button>
+
             <div className="hidden sm:flex items-center gap-3 cursor-pointer group">
               <div className="flex flex-col items-end">
                 <span className="text-sm font-semibold text-text-main dark:text-white group-hover:text-primary transition-colors">Marco Silva</span>
@@ -59,6 +61,22 @@ const Layout: React.FC = () => {
                 style={{ backgroundImage: 'url("https://picsum.photos/seed/user123/100/100")' }}
               ></div>
             </div>
+
+            <button
+              onClick={() => {
+                // Assuming useAuth is hooked in a wrapper or context. 
+                // Layout needs access to signOut. 
+                // Since I can't easily wrap Layout in useAuth here without refactor, 
+                // I will import supabase directly or pass props?
+                // Better: Layout should useAuth.
+                // I need to add useAuth to imports and component body.
+                supabase.auth.signOut().then(() => window.location.href = '/');
+              }}
+              className="flex items-center justify-center size-10 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+              title="Sair"
+            >
+              <span className="material-symbols-outlined">logout</span>
+            </button>
           </div>
         </div>
       </header>

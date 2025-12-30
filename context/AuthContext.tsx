@@ -42,30 +42,59 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 .single()
 
             if (error) {
-                if (error.code === 'PGRST116' && userId && email === 'wennsouza@gmail.com') {
-                    // Special case: valid admin user, create profile if missing
-                    const newProfile: UserProfile = {
-                        id: userId,
-                        email: email,
-                        name: 'Admin',
-                        role: 'admin',
-                        expiration_date: null // Admin never expires
+                if (error.code === 'PGRST116' && userId) {
+                    // Profile missing. Check Whitelist logic.
+
+                    // 1. Check if user is Super Admin (Hardcoded bypass for initial setup)
+                    if (email === 'wennsouza@gmail.com') {
+                        const newProfile: UserProfile = {
+                            id: userId,
+                            email: email,
+                            name: 'Admin',
+                            role: 'admin',
+                            expiration_date: null
+                        }
+                        const { data: inserted, error: insErr } = await supabase.from('user_profiles').insert([newProfile]).select().single();
+                        if (!insErr) setProfile(inserted);
+                        else setProfile(null);
+                        return;
                     }
 
-                    const { data: insertedData, error: insertError } = await supabase
-                        .from('user_profiles')
-                        .insert([newProfile])
-                        .select()
-                        .single()
+                    // 2. Check Whitelist
+                    const { data: whitelistData } = await supabase
+                        .from('access_whitelist')
+                        .select('*')
+                        .eq('email', email)
+                        .single();
 
-                    if (insertError) {
-                        console.error('Error creating admin profile:', insertError)
-                        setProfile(null)
+                    if (whitelistData) {
+                        // User is whitelisted! Create Profile.
+                        const newProfile: UserProfile = {
+                            id: userId,
+                            email: email,
+                            name: whitelistData.name || email.split('@')[0],
+                            role: whitelistData.role || 'user',
+                            expiration_date: whitelistData.expiration_date
+                        }
+
+                        const { data: inserted, error: insErr } = await supabase
+                            .from('user_profiles')
+                            .insert([newProfile])
+                            .select()
+                            .single();
+
+                        if (insErr) {
+                            console.error('Error creating profile from whitelist:', insErr);
+                            setProfile(null);
+                        } else {
+                            setProfile(inserted);
+                        }
                     } else {
-                        setProfile(insertedData)
+                        // Not whitelisted -> Access Denied
+                        setProfile(null);
                     }
                 } else {
-                    // Profile doesn't exist and not the super admin -> Access Denied (profile is null)
+                    console.error('Error fetching profile:', error)
                     setProfile(null)
                 }
             } else {
