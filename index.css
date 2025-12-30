@@ -1,4 +1,9 @@
 /* MarcAI Finanças - Global Styles */
 
 /* Additional custom styles can be added here */
+body {
+    background-color: #f6f8f6 !important;
+    color: #101910 !important;
+}
+
 /* Tailwind is loaded via CDN in index.html */

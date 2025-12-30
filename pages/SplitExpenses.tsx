@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
@@ -11,21 +10,45 @@ const SplitExpenses: React.FC = () => {
   const [showNewSplit, setShowNewSplit] = useState(false);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [friendBalances, setFriendBalances] = useState<any[]>([]);
+  const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Filter state
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  // Editing Friend State
+  const [editingFriend, setEditingFriend] = useState<any>(null);
 
   // Stats
   const [stats, setStats] = useState({
     toReceive: 0,
-    toPay: 0, // In this simple model, user is always Creator, so primarily receives. But we can expand structure later.
+    toPay: 0,
     totalBalance: 0
   });
+
+  const months = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+
+  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
 
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
 
     try {
-      // Fetch splits where user is the creator (amount friends owe user)
+      // 1. Fetch Friends
+      const { data: friendsData } = await supabase
+        .from('friends')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name');
+      setFriends(friendsData || []);
+
+      // 2. Fetch all unpaid splits for calculation
+      // But we will also allow filtering the activity list
       const { data: createdSplits, error: splitError } = await supabase
         .from('split_participants')
         .select(`
@@ -34,7 +57,8 @@ const SplitExpenses: React.FC = () => {
                     description,
                     amount,
                     date,
-                    created_by
+                    created_by,
+                    billing_date
                 ),
                 friends (
                     id,
@@ -45,13 +69,23 @@ const SplitExpenses: React.FC = () => {
 
       if (splitError) throw splitError;
 
-      const activities = createdSplits || [];
+      const allUnpaid = createdSplits || [];
 
-      // Calculate totals
+      // Filter activities based on selected month/year
+      const filteredActivities = allUnpaid.filter(item => {
+        const referenceDate = item.split_expenses?.billing_date || item.split_expenses?.date;
+        const d = new Date(referenceDate + (referenceDate.includes('T') ? '' : 'T00:00:00'));
+        return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+      });
+
+      // Calculate totals (Balance should probably be global unpaid, but filter says "Monthly references")
+      // User requested "filtro de mês referente aos valores de dividir gastos"
+      // Let's calculate stats based on the FILTERED selection to show how much is pending for THAT month specifically
+
       let toReceive = 0;
       const balancesMap: { [key: string]: { name: string, amount: number } } = {};
 
-      activities.forEach((item: any) => {
+      filteredActivities.forEach((item: any) => {
         const amount = Number(item.amount_owed);
         toReceive += amount;
 
@@ -66,17 +100,13 @@ const SplitExpenses: React.FC = () => {
         }
       });
 
-      // Current model: User creates split -> Friends Owe User.
-      // User is "Creator". Friendship is uni-directional in this simple DB for now (User -> Friend Name).
-      // So User mainly Recceives. "To Pay" would be if we had full bi-directional accounts.
-
       setStats({
         toReceive,
         toPay: 0,
         totalBalance: toReceive
       });
 
-      setRecentActivities(activities);
+      setRecentActivities(filteredActivities);
       setFriendBalances(Object.values(balancesMap));
 
     } catch (error) {
@@ -88,19 +118,86 @@ const SplitExpenses: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, [user]);
+  }, [user, selectedMonth, selectedYear]);
 
-  const handleMarkPaid = async (participantId: string) => {
+  const handleMarkPaid = async (item: any) => {
     try {
       const { error } = await supabase
         .from('split_participants')
         .update({ is_paid: true })
-        .eq('id', participantId);
+        .eq('id', item.id);
 
       if (error) throw error;
       fetchData(); // Refresh
     } catch (err) {
       console.error("Error marking paid:", err);
+    }
+  };
+
+  const handleDeleteSplit = async (item: any) => {
+    let mode: 'only' | 'all' = 'only';
+    if (item.split_expenses?.group_id) {
+      const confirmAll = confirm('Este rateio faz parte de um parcelamento. Deseja excluir apenas este mês (Cancelar) ou este e todos os futuros (OK)?');
+      mode = confirmAll ? 'all' : 'only';
+    } else {
+      if (!confirm('Tem certeza que deseja excluir este rateio?')) return;
+    }
+
+    try {
+      if (mode === 'all' && item.split_expenses?.group_id) {
+        // Find all expenses in this group from this installment onwards
+        const { data: relatedExpenses } = await supabase
+          .from('split_expenses')
+          .select('id')
+          .eq('group_id', item.split_expenses.group_id)
+          .gte('installment_number', item.split_expenses.installment_number);
+
+        const ids = relatedExpenses?.map(e => e.id) || [];
+        if (ids.length > 0) {
+          // Delete participants first due to FK or Cascaded
+          await supabase.from('split_participants').delete().in('split_expense_id', ids);
+          await supabase.from('split_expenses').delete().in('id', ids);
+        }
+      } else {
+        await supabase.from('split_participants').delete().eq('id', item.id);
+        await supabase.from('split_expenses').delete().eq('id', item.split_expense_id);
+      }
+      fetchData();
+    } catch (err: any) {
+      alert('Erro ao excluir rateio: ' + err.message);
+    }
+  };
+
+  const handleDeleteFriend = async (friendId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta pessoa? Isso não excluirá os rateios existentes, mas ela não aparecerá mais na sua lista.')) return;
+
+    try {
+      const { error } = await supabase
+        .from('friends')
+        .delete()
+        .eq('id', friendId);
+
+      if (error) throw error;
+      fetchData();
+    } catch (err: any) {
+      alert('Erro ao excluir amigo: ' + err.message);
+    }
+  };
+
+  const handleEditFriend = async (friend: any) => {
+    const newName = prompt('Novo nome para ' + friend.name + ':', friend.name);
+    if (!newName || newName === friend.name) return;
+
+    try {
+      const { error } = await supabase
+        .from('friends')
+        .update({ name: newName })
+        .eq('id', friend.id);
+
+      if (error) throw error;
+      fetchData();
+    } catch (err: any) {
+      alert('Erro ao editar amigo: ' + err.message);
     }
   };
 
@@ -130,9 +227,31 @@ const SplitExpenses: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <SplitCard title="Total a Receber" value={`R$ ${stats.toReceive.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} subtext="De amigos" icon="call_received" color="green" />
+        <SplitCard title="Total a Receber" value={`R$ ${stats.toReceive.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} subtext={`Referente a ${months[selectedMonth]}`} icon="call_received" color="green" />
         <SplitCard title="Total a Pagar" value={`R$ ${stats.toPay.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} subtext="Você deve" icon="call_made" color="orange" />
-        <BalanceSummary title="Balanço Geral" value={`+ R$ ${stats.totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} status="Positivo" />
+        <BalanceSummary title="Balanço (Mês)" value={`+ R$ ${stats.totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} status="Positivo" />
+      </div>
+
+      {/* Filter Bar */}
+      <div className="bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-white/5 p-4 mb-8 flex flex-wrap gap-4 items-center shadow-sm">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-gray-400">calendar_month</span>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+            className="bg-transparent border-none focus:ring-0 text-sm font-bold text-text-main dark:text-white cursor-pointer"
+          >
+            {months.map((m, i) => <option key={i} value={i} className="bg-white dark:bg-surface-dark">{m}</option>)}
+          </select>
+        </div>
+        <div className="h-4 w-px bg-gray-200 dark:bg-white/10 hidden sm:block"></div>
+        <select
+          value={selectedYear}
+          onChange={(e) => setSelectedYear(Number(e.target.value))}
+          className="bg-transparent border-none focus:ring-0 text-sm font-bold text-text-main dark:text-white cursor-pointer"
+        >
+          {years.map(y => <option key={y} value={y} className="bg-white dark:bg-surface-dark">{y}</option>)}
+        </select>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -140,7 +259,7 @@ const SplitExpenses: React.FC = () => {
           <div className="bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-white/5 p-4 flex flex-wrap gap-4 items-center justify-between shadow-sm">
             <h3 className="font-bold text-text-main dark:text-white flex items-center gap-2">
               <span className="material-symbols-outlined text-gray-400">history</span>
-              Contas em Aberto
+              Contas em Aberto ({months[selectedMonth]})
             </h3>
           </div>
           <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
@@ -148,7 +267,7 @@ const SplitExpenses: React.FC = () => {
               {loading ? (
                 <div className="p-6 text-center text-gray-500">Carregando...</div>
               ) : recentActivities.length === 0 ? (
-                <div className="p-6 text-center text-gray-500">Nenhuma conta em aberto.</div>
+                <div className="p-6 text-center text-gray-500">Nenhuma conta em aberto para este período.</div>
               ) : (
                 recentActivities.map((act) => (
                   <ActivityItem
@@ -159,10 +278,42 @@ const SplitExpenses: React.FC = () => {
                     label="Você recebe"
                     icon="receipt_long"
                     color="blue"
-                    onMarkPaid={() => handleMarkPaid(act.id)}
+                    billingDate={act.split_expenses?.billing_date}
+                    purchaseDate={act.split_expenses?.date}
+                    onMarkPaid={() => handleMarkPaid(act)}
+                    onDelete={() => handleDeleteSplit(act)}
                   />
                 ))
               )}
+            </div>
+          </div>
+
+          {/* People List Management */}
+          <div className="bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-white/5 p-4 flex flex-col gap-4 shadow-sm">
+            <h3 className="font-bold text-text-main dark:text-white flex items-center gap-2">
+              <span className="material-symbols-outlined text-gray-400">group</span>
+              Pessoas
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {friends.map(f => (
+                <div key={f.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                      {f.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <span className="text-sm font-medium text-text-main dark:text-white">{f.name}</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => handleEditFriend(f)} className="p-1.5 hover:bg-gray-200 dark:hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-primary">
+                      <span className="material-symbols-outlined text-[18px]">edit</span>
+                    </button>
+                    <button onClick={() => handleDeleteFriend(f.id)} className="p-1.5 hover:bg-gray-200 dark:hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-expense">
+                      <span className="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {friends.length === 0 && <p className="text-xs text-gray-500 italic p-2">Nenhuma pessoa incluída.</p>}
             </div>
           </div>
         </div>
@@ -174,7 +325,7 @@ const SplitExpenses: React.FC = () => {
             </div>
             <div className="space-y-4">
               {friendBalances.length === 0 ? (
-                <p className="text-sm text-gray-500">Nenhum saldo pendente.</p>
+                <p className="text-sm text-gray-500">Nenhum saldo pendente para {months[selectedMonth]}.</p>
               ) : (
                 friendBalances.map((fb, idx) => (
                   <PersonBalance
@@ -227,14 +378,22 @@ const BalanceSummary: React.FC<{ title: string, value: string, status: string }>
   </div>
 );
 
-const ActivityItem: React.FC<{ title: string, details: string, amount: string, label: string, icon: string, color: string, onMarkPaid?: () => void }> = ({ title, details, amount, label, icon, color, onMarkPaid }) => (
+const ActivityItem: React.FC<{ title: string, details: string, amount: string, label: string, icon: string, color: string, billingDate?: string, purchaseDate?: string, onMarkPaid?: () => void, onDelete?: () => void }> = ({ title, details, amount, label, icon, color, billingDate, purchaseDate, onMarkPaid, onDelete }) => (
   <div className="p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
     <div className="flex items-center gap-4">
       <div className={`size-10 rounded-full flex items-center justify-center shrink-0 ${color === 'blue' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
         <span className="material-symbols-outlined text-[20px]">{icon}</span>
       </div>
       <div>
-        <p className="text-sm font-bold text-text-main dark:text-white">{title}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-bold text-text-main dark:text-white">{title}</p>
+          {billingDate && purchaseDate && new Date(billingDate + 'T00:00:00').getMonth() !== new Date(purchaseDate + 'T00:00:00').getMonth() && (
+            <span className="px-1.5 py-0.5 bg-orange-50 text-orange-600 text-[10px] font-bold rounded border border-orange-100 flex items-center gap-1">
+              <span className="material-symbols-outlined text-[12px]">calendar_month</span>
+              Fatura Anterior
+            </span>
+          )}
+        </div>
         <p className="text-xs text-gray-500 dark:text-gray-400">{details}</p>
       </div>
     </div>
@@ -243,11 +402,18 @@ const ActivityItem: React.FC<{ title: string, details: string, amount: string, l
         <p className="text-xs text-gray-500 mb-1">{label}</p>
         <p className="text-sm font-bold text-primary">{amount}</p>
       </div>
-      {onMarkPaid && (
-        <button onClick={onMarkPaid} className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200" title="Marcar como Pago">
-          Quitado
-        </button>
-      )}
+      <div className="flex gap-2">
+        {onMarkPaid && (
+          <button onClick={onMarkPaid} className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200 font-bold" title="Marcar como Pago">
+            Quitado
+          </button>
+        )}
+        {onDelete && (
+          <button onClick={onDelete} className="text-xs bg-red-50 text-red-500 p-1 rounded hover:bg-red-100" title="Excluir">
+            <span className="material-symbols-outlined text-[16px]">delete</span>
+          </button>
+        )}
+      </div>
     </div>
   </div>
 );

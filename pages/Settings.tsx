@@ -140,7 +140,7 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <div className="animate-fade-in w-full max-w-5xl mx-auto px-6 py-8 md:px-12 md:py-10">
+    <div className="w-full max-w-5xl mx-auto px-6 py-8 md:px-12 md:py-10">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-text-main dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-tight">Configurações</h1>
@@ -254,19 +254,15 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
-      {/* Preferences Section */}
-      <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-gray-200 dark:border-white/5 mb-12 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 dark:border-white/5 flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary dark:text-green-400">tune</span>
-          <h2 className="text-text-main dark:text-white text-lg font-bold leading-tight">Preferências de visualização</h2>
+      {/* Preferences Section - Helper Text Only */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-12 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary">tune</span>
+          <h2 className="text-text-main text-lg font-bold leading-tight">Preferências</h2>
         </div>
         <div className="p-6 flex flex-col gap-6">
-          <ToggleItem
-            icon="dark_mode"
-            title="Modo Escuro"
-            description="Alternar entre tema claro e escuro"
-            checked={false} // Would need Context for this to be real
-          />
+          {/* Dark Mode toggle removed as per request */}
+          <p className="text-gray-500">O tema padrão do sistema é Claro.</p>
         </div>
       </div>
 

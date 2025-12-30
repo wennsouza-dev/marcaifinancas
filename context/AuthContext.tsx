@@ -42,6 +42,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 .single()
 
             if (error) {
+                // Handle 500 or other server errors gracefully
+                const pgError = error as any;
+                if (pgError.code === '500' || (typeof pgError.status === 'number' && pgError.status >= 500)) {
+                    console.warn('Server error fetching profile, might be a temporary issue or RLS conflict. Proceeding with null profile.');
+                    setProfile(null);
+                    return;
+                }
+
                 if (error.code === 'PGRST116' && userId) {
                     // Profile missing. Check Whitelist logic.
 

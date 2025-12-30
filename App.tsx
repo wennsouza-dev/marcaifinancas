@@ -73,6 +73,12 @@ const ProtectedRoute = () => {
 
 
 const App: React.FC = () => {
+  React.useEffect(() => {
+    // Enforce Light Mode
+    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
+  }, []);
+
   return (
     <AuthProvider>
       <HashRouter>
@@ -82,14 +88,15 @@ const App: React.FC = () => {
 
           <Route element={<ProtectedRoute />}>
             <Route path="/admin" element={<Admin />} />
-            <Route path="/dashboard" element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="transactions" element={<Transactions />} />
 
-              <Route path="reports" element={<Reports />} />
-              <Route path="split" element={<SplitExpenses />} />
-              <Route path="settings" element={<Settings />} />
-              {/* Backward compatibility for direct access if needed, or just keep as is */}
+            <Route element={<Layout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/transactions" element={<Transactions />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/split" element={<SplitExpenses />} />
+              <Route path="/settings" element={<Settings />} />
+              {/* Default redirect if user hits root authorized */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
             </Route>
             {/* Redirect legacy / path if user is logged in? 
             For now, let's keep it simple. If they go to /, they see landing. 
