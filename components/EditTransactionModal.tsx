@@ -13,10 +13,19 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
     const [amount, setAmount] = useState(transaction.amount?.toString().replace('.', ',') || '');
     const [date, setDate] = useState(transaction.date || '');
     const [category, setCategory] = useState(transaction.category || '');
-    const [isNextInvoice, setIsNextInvoice] = useState(!!transaction.billing_date);
+    const [refMonthShift, setRefMonthShift] = useState(0);
     const [loading, setLoading] = useState(false);
     const { user } = useAuth();
     const [editMode, setEditMode] = useState<'only' | 'all'>('only');
+
+    useEffect(() => {
+        if (transaction.billing_date) {
+            const d = new Date(transaction.date + 'T00:00:00');
+            const bd = new Date(transaction.billing_date + 'T00:00:00');
+            const shift = (bd.getFullYear() - d.getFullYear()) * 12 + (bd.getMonth() - d.getMonth());
+            setRefMonthShift(shift);
+        }
+    }, [transaction]);
 
     const handleSubmit = async () => {
         if (!description || !amount || !date || !user) return;
@@ -35,8 +44,8 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
             };
 
             if (editMode === 'only') {
-                updatePayload.billing_date = isNextInvoice
-                    ? new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 1).toISOString().split('T')[0]
+                updatePayload.billing_date = refMonthShift !== 0
+                    ? new Date(baseDate.getFullYear(), baseDate.getMonth() + refMonthShift, 1).toISOString().split('T')[0]
                     : null;
             }
 
@@ -127,31 +136,39 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                             </select>
                         </div>
                         <div className="col-span-2">
-                            <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-xl mt-2">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
-                                        <span className="material-symbols-outlined">calendar_month</span>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-gray-900">Lançar na Próxima Fatura</p>
-                                        <p className="text-[10px] text-gray-500">Contabilizar no próximo mês</p>
-                                    </div>
-                                </div>
-                                <label className={`relative inline-flex items-center cursor-pointer ${editMode === 'all' ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                    <input
-                                        type="checkbox"
-                                        className="sr-only peer"
-                                        checked={isNextInvoice}
-                                        onChange={(e) => setIsNextInvoice(e.target.checked)}
-                                        disabled={editMode === 'all'}
-                                    />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
-                                </label>
+                            <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Mês de Referência (Orçamento)</label>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    disabled={editMode === 'all'}
+                                    onClick={() => setRefMonthShift(refMonthShift === -1 ? 0 : -1)}
+                                    className={`flex-1 py-3 px-2 rounded-xl text-[10px] font-bold border transition-all flex items-center justify-center gap-1 ${refMonthShift === -1 ? 'bg-orange-500 text-white border-orange-500 shadow-sm shadow-orange-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'} ${editMode === 'all' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+                                    Mês Anterior
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={editMode === 'all'}
+                                    onClick={() => setRefMonthShift(0)}
+                                    className={`flex-1 py-3 px-2 rounded-xl text-[10px] font-bold border transition-all flex items-center justify-center gap-1 ${refMonthShift === 0 ? 'bg-orange-500 text-white border-orange-500 shadow-sm shadow-orange-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'} ${editMode === 'all' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    Mês Atual
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={editMode === 'all'}
+                                    onClick={() => setRefMonthShift(refMonthShift === 1 ? 0 : 1)}
+                                    className={`flex-1 py-3 px-2 rounded-xl text-[10px] font-bold border transition-all flex items-center justify-center gap-1 ${refMonthShift === 1 ? 'bg-orange-500 text-white border-orange-500 shadow-sm shadow-orange-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'} ${editMode === 'all' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    Próximo Mês
+                                    <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                                </button>
                             </div>
-                            {editMode === 'all' && (
-                                <p className="mt-1 text-[10px] text-orange-600 italic">
-                                    * Alteração de fatura disponível apenas no modo "Apenas Esta".
-                                </p>
+                            {editMode === 'all' ? (
+                                <p className="mt-2 text-[10px] text-orange-600 italic">* Alteração de mês disponível apenas no modo "Apenas Esta".</p>
+                            ) : (
+                                <p className="mt-2 text-[10px] text-gray-500 italic">* Define em qual mês esta transação será contabilizada no seu orçamento.</p>
                             )}
                         </div>
                     </div>

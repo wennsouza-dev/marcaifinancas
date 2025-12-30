@@ -1,0 +1,22 @@
+{
+    "name": "MarcAI Finanças",
+    "short_name": "MarcAI",
+    "description": "Controle financeiro inteligente com IA",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#f6f8f6",
+    "theme_color": "#1a6020",
+    "icons": [
+        {
+            "src": "/logo.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

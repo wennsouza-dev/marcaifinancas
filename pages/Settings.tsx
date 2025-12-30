@@ -254,6 +254,51 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
+      {/* PWA / App Installation */}
+      <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-gray-200 dark:border-white/5 mb-6 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-white/5 flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary dark:text-green-400">install_mobile</span>
+          <h2 className="text-text-main dark:text-white text-lg font-bold leading-tight">Instalar Aplicativo</h2>
+        </div>
+        <div className="p-6">
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            <div className="size-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden">
+              <img src="/logo.svg" alt="MarcAI Logo" className="size-12" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                Instale o <strong>MarcAI Finanças</strong> na sua tela de início para ter acesso rápido e uma experiência de aplicativo nativo.
+              </p>
+              <ul className="text-[12px] text-gray-500 space-y-1 list-disc ml-4">
+                <li>Acesso offline básico</li>
+                <li>Carregamento instantâneo</li>
+                <li>Sem precisar baixar da App Store/Play Store</li>
+              </ul>
+            </div>
+            <button
+              id="install-button"
+              onClick={() => {
+                const promptEvent = (window as any).deferredPrompt;
+                if (!promptEvent) {
+                  alert('O aplicativo já está instalado ou seu navegador não suporta a instalação automática. No iOS, use "Compartilhar" > "Adicionar à Tela de Início".');
+                  return;
+                }
+                promptEvent.prompt();
+                promptEvent.userChoice.then((choiceResult: any) => {
+                  if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted the install prompt');
+                  }
+                  (window as any).deferredPrompt = null;
+                });
+              }}
+              className="h-11 px-8 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-colors shadow-sm whitespace-nowrap"
+            >
+              Instalar Agora
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Preferences Section - Helper Text Only */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-12 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
@@ -262,7 +307,7 @@ const Settings: React.FC = () => {
         </div>
         <div className="p-6 flex flex-col gap-6">
           {/* Dark Mode toggle removed as per request */}
-          <p className="text-gray-500">O tema padrão do sistema é Claro.</p>
+          <p className="text-gray-500 font-medium">O tema padrão do sistema é Claro.</p>
         </div>
       </div>
 

@@ -320,10 +320,10 @@ const Transactions: React.FC = () => {
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-bold text-text-main dark:text-white line-clamp-1">{t.description}</p>
-                            {t.billing_date && new Date(t.billing_date + 'T00:00:00').getMonth() !== new Date(t.date + 'T00:00:00').getMonth() && (
-                              <span className="px-1.5 py-0.5 bg-orange-50 text-orange-600 text-[10px] font-bold rounded border border-orange-100 flex items-center gap-1">
+                            {t.billing_date && (
+                              <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded border border-blue-100 flex items-center gap-1">
                                 <span className="material-symbols-outlined text-[12px]">calendar_month</span>
-                                Fatura Anterior
+                                Ref: {new Date(t.billing_date + 'T00:00:00').toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}
                               </span>
                             )}
                           </div>

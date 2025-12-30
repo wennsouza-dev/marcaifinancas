@@ -20,7 +20,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
   const [isInstallment, setIsInstallment] = useState(false);
   const [currentInstallment, setCurrentInstallment] = useState(1);
   const [remainingInstallments, setRemainingInstallments] = useState(0);
-  const [isNextInvoice, setIsNextInvoice] = useState(false);
+  const [refMonthShift, setRefMonthShift] = useState(0); // -1: Previous, 0: Current, 1: Next
 
   const handleSubmit = async () => {
     if (!description || !amount || !date || !user) return;
@@ -52,7 +52,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
             group_id: groupId,
             installment_number: Number(currentInstallment) + i,
             total_installments: totalInstallments,
-            billing_date: isNextInvoice ? new Date(installmentDate.getFullYear(), installmentDate.getMonth() + 1, 1).toISOString().split('T')[0] : null
+            billing_date: refMonthShift !== 0 ? new Date(installmentDate.getFullYear(), installmentDate.getMonth() + refMonthShift, 1).toISOString().split('T')[0] : null
           });
         }
       } else {
@@ -63,7 +63,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
           date: baseDate.toISOString().split('T')[0],
           category,
           type,
-          billing_date: isNextInvoice ? new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 1).toISOString().split('T')[0] : null
+          billing_date: refMonthShift !== 0 ? new Date(baseDate.getFullYear(), baseDate.getMonth() + refMonthShift, 1).toISOString().split('T')[0] : null
         });
       }
 
@@ -207,25 +207,38 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
             )}
           </div>
 
-          {/* Next Invoice Toggle */}
+          {/* Reference Month Selection */}
           <div className="pt-2 border-t border-dashed border-gray-200">
-            <div className="flex items-center gap-3">
-              <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                <input
-                  checked={isNextInvoice}
-                  onChange={() => setIsNextInvoice(!isNextInvoice)}
-                  className="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary peer transition-all duration-200 left-0"
-                  id="toggle-next-invoice"
-                  type="checkbox"
-                />
-                <label className="block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer peer-checked:bg-primary/50" htmlFor="toggle-next-invoice"></label>
-              </div>
-              <label className="text-sm font-medium text-gray-700 cursor-pointer select-none" htmlFor="toggle-next-invoice">
-                Lançar na próxima fatura?
-              </label>
+            <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+              {type === 'expense' ? 'Contabilizar em qual mês?' : 'Mês de Referência'}
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setRefMonthShift(refMonthShift === -1 ? 0 : -1)}
+                className={`flex-1 py-2 px-2 rounded-lg text-[10px] font-bold border transition-all flex items-center justify-center gap-1 ${refMonthShift === -1 ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}
+              >
+                <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+                Mês Anterior
+              </button>
+              <button
+                type="button"
+                onClick={() => setRefMonthShift(0)}
+                className={`flex-1 py-2 px-2 rounded-lg text-[10px] font-bold border transition-all flex items-center justify-center gap-1 ${refMonthShift === 0 ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}
+              >
+                Mês Atual
+              </button>
+              <button
+                type="button"
+                onClick={() => setRefMonthShift(refMonthShift === 1 ? 0 : 1)}
+                className={`flex-1 py-2 px-2 rounded-lg text-[10px] font-bold border transition-all flex items-center justify-center gap-1 ${refMonthShift === 1 ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}
+              >
+                Próximo Mês
+                <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+              </button>
             </div>
-            <p className="text-[10px] text-gray-500 italic mt-1 ml-12">
-              * Contabilizará esta despesa no orçamento do próximo mês.
+            <p className="text-[10px] text-gray-500 italic mt-2 ml-1">
+              * Define em qual mês {type === 'expense' ? 'esta despesa' : 'esta receita'} será contabilizada no seu orçamento.
             </p>
           </div>
         </div>
