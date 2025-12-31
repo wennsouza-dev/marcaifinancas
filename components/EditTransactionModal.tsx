@@ -17,6 +17,7 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
     const [loading, setLoading] = useState(false);
     const { user } = useAuth();
     const [editMode, setEditMode] = useState<'only' | 'all'>('only');
+    const [convertToFixed, setConvertToFixed] = useState(false);
 
     useEffect(() => {
         if (transaction.billing_date) {
@@ -53,12 +54,56 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                     ? new Date(baseDate.getFullYear(), baseDate.getMonth() + refMonthShift, 1).toISOString().split('T')[0]
                     : null;
 
-                const { error } = await supabase
-                    .from('transactions')
-                    .update(updatePayload)
-                    .eq('id', transaction.id);
+                if (convertToFixed) {
+                    // CONVERT TO FIXED LOGIC
+                    const newGroupId = crypto.randomUUID();
+                    updatePayload.group_id = newGroupId;
+                    updatePayload.installment_number = 1;
+                    updatePayload.total_installments = null; // recurring fixed, no 1/12 badge
 
-                if (error) throw error;
+                    // 1. Update ONLY the current transaction first (to link it)
+                    const { error: updateError } = await supabase
+                        .from('transactions')
+                        .update(updatePayload)
+                        .eq('id', transaction.id);
+
+                    if (updateError) throw updateError;
+
+                    // 2. Create the next 11 transactions
+                    const transactionsToInsert = [];
+                    for (let i = 1; i < 12; i++) {
+                        const recurringDate = new Date(baseDate);
+                        recurringDate.setMonth(baseDate.getMonth() + i);
+
+                        transactionsToInsert.push({
+                            user_id: user.id,
+                            description: description,
+                            amount: numericAmount,
+                            date: recurringDate.toISOString().split('T')[0],
+                            category,
+                            type: transaction.type, // Ensure type is preserved
+                            group_id: newGroupId,
+                            installment_number: i + 1,
+                            total_installments: null,
+                            billing_date: refMonthShift !== 0 ? new Date(recurringDate.getFullYear(), recurringDate.getMonth() + refMonthShift, 1).toISOString().split('T')[0] : null
+                        });
+                    }
+
+                    const { error: insertError } = await supabase
+                        .from('transactions')
+                        .insert(transactionsToInsert);
+
+                    if (insertError) throw insertError;
+
+                } else {
+                    // Standard single update
+                    const { error } = await supabase
+                        .from('transactions')
+                        .update(updatePayload)
+                        .eq('id', transaction.id);
+
+                    if (error) throw error;
+                }
 
             } else {
                 // Bulk Update (All future installments)
@@ -211,9 +256,9 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                         </div>
                     </div>
 
-                    {transaction.group_id && (
+                    {transaction.group_id ? (
                         <div className="pt-2 border-t border-dashed border-gray-200">
-                            <label className="block text-xs font-semibold text-gray-700 mb-3 uppercase tracking-wide">Opções de Parcelamento</label>
+                            <label className="block text-xs font-semibold text-gray-700 mb-3 uppercase tracking-wide">Opções de Edição em Grupo</label>
                             <div className="flex gap-4">
                                 <button
                                     onClick={() => setEditMode('only')}
@@ -231,8 +276,31 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                                 </button>
                             </div>
                             <p className="mt-2 text-[10px] text-gray-500 italic">
-                                * Editar "Esta e Próximas" atualizará descrição, valor e categoria das parcelas futuras.
+                                * Editar "Esta e Próximas" atualizará descrição, valor e categoria das transações futuras vinculadas.
                             </p>
+                        </div>
+                    ) : (
+                        <div className="pt-2 border-t border-dashed border-gray-200">
+                            <div className="flex items-center gap-3">
+                                <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                    <input
+                                        checked={convertToFixed}
+                                        onChange={() => setConvertToFixed(!convertToFixed)}
+                                        className="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary peer transition-all duration-200 left-0"
+                                        id="toggle-convert-fixed"
+                                        type="checkbox"
+                                    />
+                                    <label className="block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer peer-checked:bg-primary/50" htmlFor="toggle-convert-fixed"></label>
+                                </div>
+                                <label className="text-sm font-medium text-gray-700 cursor-pointer select-none" htmlFor="toggle-convert-fixed">
+                                    Transformar em Fixo (Repetir por 12 meses)
+                                </label>
+                            </div>
+                            {convertToFixed && (
+                                <p className="mt-2 text-[10px] text-primary italic">
+                                    * Ao salvar, esta transação se tornará a 1ª de uma série de 12 meses. Serão criados 11 lançamentos futuros automaticamente.
+                                </p>
+                            )}
                         </div>
                     )}
                 </div>
