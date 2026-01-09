@@ -188,7 +188,7 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center bg-black/50 backdrop-blur-sm p-4 pt-10 md:pt-4">
             <div className="bg-white dark:bg-surface-dark rounded-2xl w-full max-w-md p-6 shadow-xl animate-scale-up max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-bold text-text-main dark:text-white">Novo Rateio</h2>

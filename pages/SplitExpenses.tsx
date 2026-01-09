@@ -254,160 +254,163 @@ const SplitExpenses: React.FC = () => {
   };
 
   return (
-    <div className="animate-fade-in w-full max-w-[1440px] mx-auto px-4 md:px-10 py-8">
-      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-text-main dark:text-white">Dividir Gastos</h1>
-          <p className="text-gray-600 dark:text-gray-400 text-base">Gerencie despesas compartilhadas, veja quem deve e organize reembolsos.</p>
+    <>
+      <div className="animate-fade-in w-full max-w-[1440px] mx-auto px-4 md:px-10 py-8">
+        <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-text-main dark:text-white">Dividir Gastos</h1>
+            <p className="text-gray-600 dark:text-gray-400 text-base">Gerencie despesas compartilhadas, veja quem deve e organize reembolsos.</p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowAddFriend(true)}
+              className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors shadow-sm text-gray-700 dark:text-gray-200 text-sm font-bold"
+            >
+              <span className="material-symbols-outlined text-[20px]">person_add</span>
+              <span>Incluir Pessoa</span>
+            </button>
+            <button
+              onClick={() => setShowNewSplit(true)}
+              className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary hover:bg-primary-hover text-white transition-colors shadow-md shadow-primary/20 text-sm font-bold"
+            >
+              <span className="material-symbols-outlined text-[20px]">receipt_long</span>
+              <span>Novo Rateio</span>
+            </button>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowAddFriend(true)}
-            className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors shadow-sm text-gray-700 dark:text-gray-200 text-sm font-bold"
-          >
-            <span className="material-symbols-outlined text-[20px]">person_add</span>
-            <span>Incluir Pessoa</span>
-          </button>
-          <button
-            onClick={() => setShowNewSplit(true)}
-            className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary hover:bg-primary-hover text-white transition-colors shadow-md shadow-primary/20 text-sm font-bold"
-          >
-            <span className="material-symbols-outlined text-[20px]">receipt_long</span>
-            <span>Novo Rateio</span>
-          </button>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <SplitCard title="Total a Receber" value={`R$ ${stats.toReceive.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} subtext={`Referente a ${months[selectedMonth]}`} icon="call_received" color="green" />
+          <SplitCard title="Total a Pagar" value={`R$ ${stats.toPay.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} subtext="Você deve" icon="call_made" color="orange" />
+          <BalanceSummary title="Balanço (Mês)" value={`+ R$ ${stats.totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} status="Positivo" />
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <SplitCard title="Total a Receber" value={`R$ ${stats.toReceive.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} subtext={`Referente a ${months[selectedMonth]}`} icon="call_received" color="green" />
-        <SplitCard title="Total a Pagar" value={`R$ ${stats.toPay.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} subtext="Você deve" icon="call_made" color="orange" />
-        <BalanceSummary title="Balanço (Mês)" value={`+ R$ ${stats.totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} status="Positivo" />
-      </div>
-
-      {/* Filter Bar */}
-      <div className="bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-white/5 p-4 mb-8 flex flex-wrap gap-4 items-center shadow-sm">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-gray-400">calendar_month</span>
+        {/* Filter Bar */}
+        <div className="bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-white/5 p-4 mb-8 flex flex-wrap gap-4 items-center shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-gray-400">calendar_month</span>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="bg-transparent border-none focus:ring-0 text-sm font-bold text-text-main dark:text-white cursor-pointer"
+            >
+              {months.map((m, i) => <option key={i} value={i} className="bg-white dark:bg-surface-dark">{m}</option>)}
+            </select>
+          </div>
+          <div className="h-4 w-px bg-gray-200 dark:bg-white/10 hidden sm:block"></div>
           <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
             className="bg-transparent border-none focus:ring-0 text-sm font-bold text-text-main dark:text-white cursor-pointer"
           >
-            {months.map((m, i) => <option key={i} value={i} className="bg-white dark:bg-surface-dark">{m}</option>)}
+            {years.map(y => <option key={y} value={y} className="bg-white dark:bg-surface-dark">{y}</option>)}
           </select>
-        </div>
-        <div className="h-4 w-px bg-gray-200 dark:bg-white/10 hidden sm:block"></div>
-        <select
-          value={selectedYear}
-          onChange={(e) => setSelectedYear(Number(e.target.value))}
-          className="bg-transparent border-none focus:ring-0 text-sm font-bold text-text-main dark:text-white cursor-pointer"
-        >
-          {years.map(y => <option key={y} value={y} className="bg-white dark:bg-surface-dark">{y}</option>)}
-        </select>
-        <div className="ml-auto">
-          <button
-            onClick={() => handleExportPDF()}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-200 dark:border-red-500/20"
-          >
-            <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
-            Exportar Geral
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          <div className="bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-white/5 p-4 flex flex-wrap gap-4 items-center justify-between shadow-sm">
-            <h3 className="font-bold text-text-main dark:text-white flex items-center gap-2">
-              <span className="material-symbols-outlined text-gray-400">history</span>
-              Contas em Aberto ({months[selectedMonth]})
-            </h3>
+          <div className="ml-auto">
+            <button
+              onClick={() => handleExportPDF()}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-200 dark:border-red-500/20"
+            >
+              <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+              Exportar Geral
+            </button>
           </div>
-          <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
-            <div className="divide-y divide-gray-100 dark:divide-white/5">
-              {loading ? (
-                <div className="p-6 text-center text-gray-500">Carregando...</div>
-              ) : recentActivities.length === 0 ? (
-                <div className="p-6 text-center text-gray-500">Nenhuma conta em aberto para este período.</div>
-              ) : (
-                recentActivities.map((act) => (
-                  <ActivityItem
-                    key={act.id}
-                    title={act.split_expenses?.description || 'Despesa'}
-                    details={`Dividido com ${act.friends?.name}`}
-                    amount={`R$ ${Number(act.amount_owed).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-                    label="Você recebe"
-                    icon="receipt_long"
-                    color="blue"
-                    billingDate={act.split_expenses?.billing_date}
-                    purchaseDate={act.split_expenses?.date}
-                    onMarkPaid={() => handleMarkPaid(act)}
-                    onDelete={() => handleDeleteSplit(act)}
-                  />
-                ))
-              )}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 flex flex-col gap-6">
+            <div className="bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-white/5 p-4 flex flex-wrap gap-4 items-center justify-between shadow-sm">
+              <h3 className="font-bold text-text-main dark:text-white flex items-center gap-2">
+                <span className="material-symbols-outlined text-gray-400">history</span>
+                Contas em Aberto ({months[selectedMonth]})
+              </h3>
             </div>
-          </div>
+            <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
+              <div className="divide-y divide-gray-100 dark:divide-white/5">
+                {loading ? (
+                  <div className="p-6 text-center text-gray-500">Carregando...</div>
+                ) : recentActivities.length === 0 ? (
+                  <div className="p-6 text-center text-gray-500">Nenhuma conta em aberto para este período.</div>
+                ) : (
+                  recentActivities.map((act) => (
+                    <ActivityItem
+                      key={act.id}
+                      title={act.split_expenses?.description || 'Despesa'}
+                      details={`Dividido com ${act.friends?.name}`}
+                      amount={`R$ ${Number(act.amount_owed).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                      label="Você recebe"
+                      icon="receipt_long"
+                      color="blue"
+                      billingDate={act.split_expenses?.billing_date}
+                      purchaseDate={act.split_expenses?.date}
+                      onMarkPaid={() => handleMarkPaid(act)}
+                      onDelete={() => handleDeleteSplit(act)}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
 
-          {/* People List Management */}
-          <div className="bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-white/5 p-4 flex flex-col gap-4 shadow-sm">
-            <h3 className="font-bold text-text-main dark:text-white flex items-center gap-2">
-              <span className="material-symbols-outlined text-gray-400">group</span>
-              Pessoas
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {friends.map(f => (
-                <div key={f.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
-                  <div className="flex items-center gap-3">
-                    <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                      {f.name.substring(0, 2).toUpperCase()}
+            {/* People List Management */}
+            <div className="bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-white/5 p-4 flex flex-col gap-4 shadow-sm">
+              <h3 className="font-bold text-text-main dark:text-white flex items-center gap-2">
+                <span className="material-symbols-outlined text-gray-400">group</span>
+                Pessoas
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {friends.map(f => (
+                  <div key={f.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+                    <div className="flex items-center gap-3">
+                      <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                        {f.name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <span className="text-sm font-medium text-text-main dark:text-white">{f.name}</span>
                     </div>
-                    <span className="text-sm font-medium text-text-main dark:text-white">{f.name}</span>
+                    <div className="flex gap-1">
+                      <button onClick={() => handleEditFriend(f)} className="p-1.5 hover:bg-gray-200 dark:hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-primary">
+                        <span className="material-symbols-outlined text-[18px]">edit</span>
+                      </button>
+                      <button onClick={() => handleDeleteFriend(f.id)} className="p-1.5 hover:bg-gray-200 dark:hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-expense">
+                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex gap-1">
-                    <button onClick={() => handleEditFriend(f)} className="p-1.5 hover:bg-gray-200 dark:hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-primary">
-                      <span className="material-symbols-outlined text-[18px]">edit</span>
-                    </button>
-                    <button onClick={() => handleDeleteFriend(f.id)} className="p-1.5 hover:bg-gray-200 dark:hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-expense">
-                      <span className="material-symbols-outlined text-[18px]">delete</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {friends.length === 0 && <p className="text-xs text-gray-500 italic p-2">Nenhuma pessoa incluída.</p>}
+                ))}
+                {friends.length === 0 && <p className="text-xs text-gray-500 italic p-2">Nenhuma pessoa incluída.</p>}
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-1">
+            <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-gray-100 dark:border-white/5 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-text-main dark:text-white">Saldos por Pessoa</h3>
+              </div>
+              <div className="space-y-4">
+                {friendBalances.length === 0 ? (
+                  <p className="text-sm text-gray-500">Nenhum saldo pendente para {months[selectedMonth]}.</p>
+                ) : (
+                  friendBalances.map((fb, idx) => (
+                    <PersonBalance
+                      key={idx}
+                      name={fb.name}
+                      details="Deve a você"
+                      amount={`R$ ${fb.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                      initials={fb.name.substring(0, 2).toUpperCase()}
+                      gradient="from-blue-400 to-blue-600"
+                      onExport={() => handleExportPDF({ id: Object.keys(recentActivities.reduce((acc, act) => { if (act.friends?.name === fb.name) acc[act.friends.id] = true; return acc; }, {} as any))[0], name: fb.name })}
+                    />
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-gray-100 dark:border-white/5 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-text-main dark:text-white">Saldos por Pessoa</h3>
-            </div>
-            <div className="space-y-4">
-              {friendBalances.length === 0 ? (
-                <p className="text-sm text-gray-500">Nenhum saldo pendente para {months[selectedMonth]}.</p>
-              ) : (
-                friendBalances.map((fb, idx) => (
-                  <PersonBalance
-                    key={idx}
-                    name={fb.name}
-                    details="Deve a você"
-                    amount={`R$ ${fb.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-                    initials={fb.name.substring(0, 2).toUpperCase()}
-                    gradient="from-blue-400 to-blue-600"
-                    onExport={() => handleExportPDF({ id: Object.keys(recentActivities.reduce((acc, act) => { if (act.friends?.name === fb.name) acc[act.friends.id] = true; return acc; }, {} as any))[0], name: fb.name })}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-        </div>
+        {/* Modals outside animated container to prevent fixed positioning issues */}
       </div>
-
       {showAddFriend && <AddFriendModal onClose={() => setShowAddFriend(false)} onSuccess={fetchData} />}
       {showNewSplit && <NewSplitModal onClose={() => setShowNewSplit(false)} onSuccess={fetchData} />}
-    </div>
+    </>
   );
 };
 
