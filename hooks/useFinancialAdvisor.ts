@@ -56,8 +56,9 @@ export const useFinancialAdvisor = (transactions: any[], stats: any) => {
             PERGUNTA DO USUÁRIO: "${userText}"
             `;
 
-            const genAI = new GoogleGenerativeAI(API_KEY);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const genAI = new GoogleGenerativeAI(API_KEY.trim());
+            // Using the -001 version is often more stable for API calls
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
 
             const result = await model.generateContent(context);
             const response = result.response;
