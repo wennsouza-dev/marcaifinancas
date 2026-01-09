@@ -10,6 +10,7 @@ import EditTransactionModal from '../components/EditTransactionModal';
 
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import SmartAccountantWidget from '../components/SmartAccountantWidget';
+import FinancialAdvisorWidget from '../components/FinancialAdvisorWidget';
 import { useSmartAccountant } from '../hooks/useSmartAccountant';
 
 const Dashboard: React.FC = () => {
