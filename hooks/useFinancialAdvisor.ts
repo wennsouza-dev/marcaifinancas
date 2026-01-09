@@ -61,7 +61,7 @@ export const useFinancialAdvisor = (transactions: any[], stats: any) => {
 
             let text = "";
             let success = false;
-            let lastError;
+            let firstError;
 
             for (const modelName of modelsToTry) {
                 try {
@@ -71,16 +71,15 @@ export const useFinancialAdvisor = (transactions: any[], stats: any) => {
                     const response = result.response;
                     text = response.text();
                     success = true;
-                    break; // Stop if successful
+                    break;
                 } catch (err: any) {
                     console.warn(`Failed with ${modelName}:`, err.message);
-                    lastError = err;
-                    // Continue to next model
+                    if (!firstError) firstError = err; // Keep the first error (most relevant)
                 }
             }
 
             if (!success) {
-                throw lastError; // Throw the last error if all failed
+                throw firstError;
             }
 
             const botMsg: ChatMessage = {
