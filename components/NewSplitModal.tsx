@@ -21,6 +21,7 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
     const [isInstallment, setIsInstallment] = useState(false);
     const [installmentsCount, setInstallmentsCount] = useState('1');
     const [isNextInvoice, setIsNextInvoice] = useState(false);
+    const [isFixed, setIsFixed] = useState(false);
 
     useEffect(() => {
         const fetchFriends = async () => {
@@ -63,7 +64,9 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
 
         try {
             const totalAmount = parseFloat(amount);
-            const numInstallments = isInstallment ? parseInt(installmentsCount) : 1;
+            // If Fixed, force 12 installments for generation, otherwise use input
+            const numInstallments = isFixed ? 12 : (isInstallment ? parseInt(installmentsCount) : 1);
+
             const groupId = (typeof crypto !== 'undefined' && crypto.randomUUID)
                 ? crypto.randomUUID()
                 : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -85,7 +88,22 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
             }
 
             // Calculate amount per month
-            const monthlyTotal = totalAmount / numInstallments;
+            // For Fixed/Recurring, the amount entered is usually the MONTHLY amount, not total. 
+            // BUT for standard installments, amount is TOTAL.
+            // Assumption for "Fixed (Rent)": User enters the monthly value.
+            // Assumption for "Installments": User enters TOTAL value.
+            // Let's stick to the current logic: "Amount" is the value to be split per iteration if Fixed? 
+            // Wait, usually "Fixed" means "This value every month". "Installment" means "Total / N".
+            // If I change this now it might be confusing. 
+            // Let's look at EditTransactionModal. It treats Amount as the value of the transaction.
+            // If I select "Fixed", the user likely expects "This is the value of the rent".
+            // If I select "Installment", the user likely expects "This is the total purchase price".
+
+            // Refined Logic:
+            // If isFixed: monthlyTotal = totalAmount (The input IS the monthly value)
+            // If !isFixed: monthlyTotal = totalAmount / numInstallments (Standard split logic)
+
+            const monthlyTotal = isFixed ? totalAmount : (totalAmount / numInstallments);
 
             // Amount owed per friend
             // If half: Total is shared between User + Friends equally. Each friend owes 1/(N+1)
@@ -93,24 +111,31 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
             const divisor = splitType === 'half' ? (resolvedFriends.length + 1) : resolvedFriends.length;
             const monthlyOwed = monthlyTotal / divisor;
 
+            // Amount for the user (if half split)
+            const userShare = splitType === 'half' ? monthlyOwed : 0;
+
             const baseDate = new Date(date + 'T00:00:00');
 
             for (let i = 0; i < numInstallments; i++) {
                 const installmentDate = new Date(baseDate);
                 installmentDate.setMonth(baseDate.getMonth() + i);
 
+                const currentBillingDate = isNextInvoice
+                    ? new Date(installmentDate.getFullYear(), installmentDate.getMonth() + 1, 1).toISOString().split('T')[0]
+                    : null;
+
                 // 1. Create Split Expense
                 const { data: expenseData, error: expenseError } = await supabase
                     .from('split_expenses')
                     .insert([{
                         created_by: user.id,
-                        description: isInstallment ? `${description} (${i + 1}/${numInstallments})` : description,
+                        description: isFixed ? description : (isInstallment ? `${description} (${i + 1}/${numInstallments})` : description),
                         amount: monthlyTotal,
                         date: installmentDate.toISOString(),
                         group_id: groupId,
                         installment_number: i + 1,
-                        total_installments: numInstallments,
-                        billing_date: isNextInvoice ? new Date(installmentDate.getFullYear(), installmentDate.getMonth() + 1, 1).toISOString().split('T')[0] : null
+                        total_installments: isFixed ? null : numInstallments, // Null indicates fixed/recurring without specific end in UI (though we generate 12)
+                        billing_date: currentBillingDate
                     }])
                     .select()
                     .single();
@@ -130,6 +155,26 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                     .insert(participants);
 
                 if (participantError) throw participantError;
+
+                // 3. Create User Transaction (if 50/50)
+                if (splitType === 'half') {
+                    const { error: transactionError } = await supabase
+                        .from('transactions')
+                        .insert([{
+                            user_id: user.id,
+                            description: description, // Keep original description
+                            amount: userShare,
+                            date: installmentDate.toISOString(),
+                            category: 'Rateio', // Requested fixed category
+                            type: 'expense',
+                            group_id: groupId,
+                            installment_number: i + 1,
+                            total_installments: isFixed ? null : numInstallments,
+                            billing_date: currentBillingDate
+                        }]);
+
+                    if (transactionError) throw transactionError;
+                }
             }
 
             onSuccess();
@@ -254,19 +299,33 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                         </p>
                     </div>
 
-                    {/* Installments Toggle */}
-                    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10">
-                        <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-text-secondary">credit_card</span>
-                            <span className="text-sm font-medium text-text-main dark:text-white">Parcelar no cartão?</span>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => setIsInstallment(!isInstallment)}
-                            className={`w-12 h-6 rounded-full transition-colors relative ${isInstallment ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-700'}`}
+                    {/* Fixed / Installments Toggles */}
+                    <div className="grid grid-cols-2 gap-3">
+                        {/* Fixed Toggle */}
+                        <div
+                            onClick={() => {
+                                setIsFixed(!isFixed);
+                                if (!isFixed) setIsInstallment(false); // Disable installment if fixed
+                            }}
+                            className={`flex flex-col items-center justify-center p-3 rounded-xl border cursor-pointer transition-all ${isFixed ? 'bg-primary/10 border-primary text-primary' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-400'}`}
                         >
-                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isInstallment ? 'left-7' : 'left-1'}`}></div>
-                        </button>
+                            <span className="material-symbols-outlined mb-1">repeat</span>
+                            <span className="text-xs font-bold">Fixo (12 Meses)</span>
+                            <span className="text-[9px] text-center mt-1 opacity-70">Para aluguel, internet...</span>
+                        </div>
+
+                        {/* Installment Toggle */}
+                        <div
+                            onClick={() => {
+                                setIsInstallment(!isInstallment);
+                                if (!isInstallment) setIsFixed(false); // Disable fixed if installment
+                            }}
+                            className={`flex flex-col items-center justify-center p-3 rounded-xl border cursor-pointer transition-all ${isInstallment ? 'bg-primary/10 border-primary text-primary' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-400'}`}
+                        >
+                            <span className="material-symbols-outlined mb-1">credit_card</span>
+                            <span className="text-xs font-bold">Parcelado</span>
+                            <span className="text-[9px] text-center mt-1 opacity-70">Compras no cartão</span>
+                        </div>
                     </div>
 
                     {isInstallment && (
