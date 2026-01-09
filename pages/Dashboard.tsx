@@ -373,7 +373,8 @@ const Dashboard: React.FC = () => {
           />
         )
       }
-    </div >
+      <FinancialAdvisorWidget transactions={filteredForAnalysis} stats={stats} />
+    </div>
   );
 };
 
