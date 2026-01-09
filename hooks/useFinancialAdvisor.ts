@@ -56,13 +56,32 @@ export const useFinancialAdvisor = (transactions: any[], stats: any) => {
             PERGUNTA DO USUÁRIO: "${userText}"
             `;
 
+            const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-001", "gemini-pro", "gemini-1.0-pro"];
             const genAI = new GoogleGenerativeAI(API_KEY.trim());
-            // Using the -001 version is often more stable for API calls
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
 
-            const result = await model.generateContent(context);
-            const response = result.response;
-            const text = response.text();
+            let text = "";
+            let success = false;
+            let lastError;
+
+            for (const modelName of modelsToTry) {
+                try {
+                    console.log(`Trying model: ${modelName}`);
+                    const model = genAI.getGenerativeModel({ model: modelName });
+                    const result = await model.generateContent(context);
+                    const response = result.response;
+                    text = response.text();
+                    success = true;
+                    break; // Stop if successful
+                } catch (err: any) {
+                    console.warn(`Failed with ${modelName}:`, err.message);
+                    lastError = err;
+                    // Continue to next model
+                }
+            }
+
+            if (!success) {
+                throw lastError; // Throw the last error if all failed
+            }
 
             const botMsg: ChatMessage = {
                 id: crypto.randomUUID(),
