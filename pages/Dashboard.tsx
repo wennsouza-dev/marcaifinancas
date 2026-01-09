@@ -8,6 +8,10 @@ import NewExpenseModal from '../components/NewExpenseModal';
 
 import EditTransactionModal from '../components/EditTransactionModal';
 
+import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
+import SmartAccountantWidget from '../components/SmartAccountantWidget';
+import { useSmartAccountant } from '../hooks/useSmartAccountant';
+
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState({
@@ -24,7 +28,10 @@ const Dashboard: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<any>(null);
   const [modalType, setModalType] = useState<'income' | 'expense'>('expense');
+  const [filteredForAnalysis, setFilteredForAnalysis] = useState<any[]>([]);
 
   // Filtering state
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -87,6 +94,9 @@ const Dashboard: React.FC = () => {
       const sortedDesc = [...filteredTransactions].sort((a, b) => new Date(b.date + 'T00:00:00').getTime() - new Date(a.date + 'T00:00:00').getTime());
       setRecentTransactions(sortedDesc.slice(0, 5));
 
+      // SMART ACCOUNTANT ANALYSIS (We analyze ALL filtered transactions for the month)
+      setFilteredForAnalysis(filteredTransactions);
+
       // Process Chart Data (Last 6 months ending in selectedMonth)
       const chartMonths = [];
       for (let i = 5; i >= 0; i--) {
@@ -131,26 +141,26 @@ const Dashboard: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (transaction: any) => {
-    let deleteMode: 'only' | 'all' = 'only';
+  const handleOpenDeleteModal = (transaction: any) => {
+    setTransactionToDelete(transaction);
+    setShowDeleteModal(true);
+  };
 
-    if (transaction.group_id) {
-      const confirmAll = confirm('Esta é uma transação parcelada. Deseja excluir apenas esta parcela (Cancelar) ou esta e todas as futuras (OK)?');
-      deleteMode = confirmAll ? 'all' : 'only';
-    } else {
-      if (!confirm('Tem certeza que deseja excluir esta transação?')) return;
-    }
+  const confirmDelete = async (deleteMode: 'only' | 'all') => {
+    if (!transactionToDelete) return;
 
     try {
       let query = supabase.from('transactions').delete();
-      if (deleteMode === 'all' && transaction.group_id) {
-        query = query.eq('group_id', transaction.group_id).gte('installment_number', transaction.installment_number);
+      if (deleteMode === 'all' && transactionToDelete.group_id) {
+        query = query.eq('group_id', transactionToDelete.group_id).gte('installment_number', transactionToDelete.installment_number);
       } else {
-        query = query.eq('id', transaction.id);
+        query = query.eq('id', transactionToDelete.id);
       }
       const { error } = await query;
       if (error) throw error;
       fetchDashboardData();
+      setShowDeleteModal(false);
+      setTransactionToDelete(null);
     } catch (error: any) {
       alert('Erro ao excluir: ' + error.message);
     }
@@ -160,6 +170,8 @@ const Dashboard: React.FC = () => {
     setEditingTransaction(transaction);
     setIsEditModalOpen(true);
   };
+
+  const { alerts } = useSmartAccountant(filteredForAnalysis, stats.balance);
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 md:px-12 md:py-10">
@@ -202,6 +214,9 @@ const Dashboard: React.FC = () => {
           color="red"
         />
       </div>
+
+      {/* Smart Accountant Widget */}
+      <SmartAccountantWidget alerts={alerts} />
 
       {/* Featured Chart Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
@@ -289,7 +304,7 @@ const Dashboard: React.FC = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDelete(t);
+                          handleOpenDeleteModal(t);
                         }}
                         className="p-1.5 hover:text-expense transition-colors text-gray-300"
                       >
@@ -321,25 +336,43 @@ const Dashboard: React.FC = () => {
         </button>
       </div>
 
-      {isModalOpen && (
-        <NewExpenseModal
-          onClose={() => setIsModalOpen(false)}
-          type={modalType}
-          onSuccess={fetchDashboardData}
-        />
-      )}
+      {
+        isModalOpen && (
+          <NewExpenseModal
+            onClose={() => setIsModalOpen(false)}
+            type={modalType}
+            onSuccess={fetchDashboardData}
+          />
+        )
+      }
 
-      {isEditModalOpen && editingTransaction && (
-        <EditTransactionModal
-          transaction={editingTransaction}
-          onClose={() => {
-            setIsEditModalOpen(false);
-            setEditingTransaction(null);
-          }}
-          onSuccess={fetchDashboardData}
-        />
-      )}
-    </div>
+      {
+        isEditModalOpen && editingTransaction && (
+          <EditTransactionModal
+            transaction={editingTransaction}
+            onClose={() => {
+              setIsEditModalOpen(false);
+              setEditingTransaction(null);
+            }}
+            onSuccess={fetchDashboardData}
+          />
+        )
+      }
+
+      {
+        showDeleteModal && transactionToDelete && (
+          <DeleteConfirmationModal
+            isOpen={showDeleteModal}
+            onClose={() => {
+              setShowDeleteModal(false);
+              setTransactionToDelete(null);
+            }}
+            onConfirm={confirmDelete}
+            isRecurring={!!transactionToDelete.group_id}
+          />
+        )
+      }
+    </div >
   );
 };
 

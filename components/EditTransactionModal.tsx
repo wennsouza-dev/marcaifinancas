@@ -17,7 +17,12 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
     const [loading, setLoading] = useState(false);
     const { user } = useAuth();
     const [editMode, setEditMode] = useState<'only' | 'all'>('only');
-    const [convertToFixed, setConvertToFixed] = useState(false);
+
+    // Installment/Fixed conversion state
+    const [isInstallment, setIsInstallment] = useState(false);
+    const [isFixed, setIsFixed] = useState(false);
+    const [currentInstallment, setCurrentInstallment] = useState(1);
+    const [remainingInstallments, setRemainingInstallments] = useState(0);
 
     useEffect(() => {
         if (transaction.billing_date) {
@@ -54,8 +59,66 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                     ? new Date(baseDate.getFullYear(), baseDate.getMonth() + refMonthShift, 1).toISOString().split('T')[0]
                     : null;
 
-                if (convertToFixed) {
-                    // CONVERT TO FIXED LOGIC
+                if (isInstallment) {
+                    // CONVERT TO INSTALLMENT LOGIC
+                    const newGroupId = crypto.randomUUID();
+                    const totalInstallments = Number(currentInstallment) + Number(remainingInstallments);
+
+                    // Loop through ALL implied installments
+                    const transactionsToInsert = [];
+
+                    for (let i = 1; i <= totalInstallments; i++) {
+                        const actualNumber = i;
+
+                        // Calculate date shift relative to the CURRENT transaction (which is at 'date')
+                        // If current is #5 (May) and we want #1 (Jan): Shift = 1 - 5 = -4 months
+                        const shift = actualNumber - Number(currentInstallment);
+
+                        const installDate = new Date(baseDate);
+                        installDate.setMonth(baseDate.getMonth() + shift);
+                        const installDateStr = installDate.toISOString().split('T')[0];
+
+                        const billingDate = refMonthShift !== 0
+                            ? new Date(installDate.getFullYear(), installDate.getMonth() + refMonthShift, 1).toISOString().split('T')[0]
+                            : null;
+
+                        const commonData = {
+                            description: `${description} (${actualNumber}/${totalInstallments})`,
+                            amount: numericAmount,
+                            category,
+                            type: transaction.type,
+                            group_id: newGroupId,
+                            installment_number: actualNumber,
+                            total_installments: totalInstallments,
+                            date: installDateStr,
+                            billing_date: billingDate
+                        };
+
+                        if (actualNumber === Number(currentInstallment)) {
+                            // UPDATE the existing transaction (this one)
+                            const { error: updateError } = await supabase
+                                .from('transactions')
+                                .update(commonData)
+                                .eq('id', transaction.id);
+                            if (updateError) throw updateError;
+                        } else {
+                            // INSERT new transaction (past or future)
+                            transactionsToInsert.push({
+                                ...commonData,
+                                user_id: user.id
+                            });
+                        }
+                    }
+
+                    if (transactionsToInsert.length > 0) {
+                        const { error: insertError } = await supabase
+                            .from('transactions')
+                            .insert(transactionsToInsert);
+                        if (insertError) throw insertError;
+                    }
+
+                } else if (isFixed) {
+                    // CONVERT TO FIXED LOGIC (12 Months)
                     const newGroupId = crypto.randomUUID();
                     updatePayload.group_id = newGroupId;
                     updatePayload.installment_number = 1;
@@ -281,25 +344,83 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                         </div>
                     ) : (
                         <div className="pt-2 border-t border-dashed border-gray-200">
-                            <div className="flex items-center gap-3">
-                                <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                    <input
-                                        checked={convertToFixed}
-                                        onChange={() => setConvertToFixed(!convertToFixed)}
-                                        className="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary peer transition-all duration-200 left-0"
-                                        id="toggle-convert-fixed"
-                                        type="checkbox"
-                                    />
-                                    <label className="block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer peer-checked:bg-primary/50" htmlFor="toggle-convert-fixed"></label>
+                            <div className="flex flex-col gap-3 mb-4">
+                                {/* Installment Toggle */}
+                                <div className="flex items-center gap-3">
+                                    <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input
+                                            checked={isInstallment}
+                                            onChange={() => {
+                                                setIsInstallment(!isInstallment);
+                                                if (!isInstallment) setIsFixed(false);
+                                            }}
+                                            className="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary peer transition-all duration-200 left-0"
+                                            id="edit-toggle-installment"
+                                            type="checkbox"
+                                        />
+                                        <label className="block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer peer-checked:bg-primary/50" htmlFor="edit-toggle-installment"></label>
+                                    </div>
+                                    <label className="text-sm font-medium text-gray-700 cursor-pointer select-none" htmlFor="edit-toggle-installment">
+                                        Transformar em Parcelado (Cartão)
+                                    </label>
                                 </div>
-                                <label className="text-sm font-medium text-gray-700 cursor-pointer select-none" htmlFor="toggle-convert-fixed">
-                                    Transformar em Fixo (Repetir por 12 meses)
-                                </label>
+
+                                {/* Fixed Toggle */}
+                                <div className="flex items-center gap-3">
+                                    <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input
+                                            checked={isFixed}
+                                            onChange={() => {
+                                                setIsFixed(!isFixed);
+                                                if (!isFixed) setIsInstallment(false);
+                                            }}
+                                            className="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary peer transition-all duration-200 left-0"
+                                            id="edit-toggle-fixed"
+                                            type="checkbox"
+                                        />
+                                        <label className="block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer peer-checked:bg-primary/50" htmlFor="edit-toggle-fixed"></label>
+                                    </div>
+                                    <label className="text-sm font-medium text-gray-700 cursor-pointer select-none" htmlFor="edit-toggle-fixed">
+                                        Transformar em Fixo (12 meses)
+                                    </label>
+                                </div>
                             </div>
-                            {convertToFixed && (
-                                <p className="mt-2 text-[10px] text-primary italic">
-                                    * Ao salvar, esta transação se tornará a 1ª de uma série de 12 meses. Serão criados 11 lançamentos futuros automaticamente.
-                                </p>
+
+                            {isInstallment && (
+                                <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 grid grid-cols-2 gap-4 mb-3">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-primary mb-1 uppercase tracking-wider">Parcela Atual</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={currentInstallment}
+                                            onChange={(e) => setCurrentInstallment(Number(e.target.value))}
+                                            className="w-full px-3 py-2 bg-white border border-primary/20 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-bold text-primary"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-primary mb-1 uppercase tracking-wider">Parcelas Restantes</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={remainingInstallments}
+                                            onChange={(e) => setRemainingInstallments(Number(e.target.value))}
+                                            className="w-full px-3 py-2 bg-white border border-primary/20 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-bold text-primary"
+                                        />
+                                    </div>
+                                    <p className="col-span-2 text-[10px] text-gray-500 italic">
+                                        * Serão criadas {remainingInstallments + 1} transações vinculadas. Esta será a {currentInstallment}ª de {Number(currentInstallment) + Number(remainingInstallments)}.
+                                    </p>
+                                </div>
+                            )}
+
+                            {isFixed && (
+                                <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 mb-3">
+                                    <p className="text-xs text-primary font-medium flex items-center gap-2">
+                                        <span className="material-symbols-outlined">repeat</span>
+                                        Repetir automaticamente por 12 meses
+                                    </p>
+                                </div>
                             )}
                         </div>
                     )}
@@ -312,8 +433,8 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                         {loading ? 'Salvando...' : 'Salvar Alterações'}
                     </button>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

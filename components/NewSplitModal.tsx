@@ -19,7 +19,9 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
     // New Fields
     const [splitType, setSplitType] = useState<'half' | 'full'>('half');
     const [isInstallment, setIsInstallment] = useState(false);
-    const [installmentsCount, setInstallmentsCount] = useState('1');
+    // const [installmentsCount, setInstallmentsCount] = useState('1'); // Removed in favor of explicitly controlled inputs
+    const [currentInstallment, setCurrentInstallment] = useState(1);
+    const [remainingInstallments, setRemainingInstallments] = useState(0);
     const [isNextInvoice, setIsNextInvoice] = useState(false);
     const [isFixed, setIsFixed] = useState(false);
 
@@ -64,8 +66,15 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
 
         try {
             const totalAmount = parseFloat(amount);
-            // If Fixed, force 12 installments for generation, otherwise use input
-            const numInstallments = isFixed ? 12 : (isInstallment ? parseInt(installmentsCount) : 1);
+            // If Fixed, force 12 installments. If Installment, calc total count (Current + Remaining). 
+            // If Standard, it's just 1.
+            const totalInstallmentsCount = isFixed ? 12 : (isInstallment ? (currentInstallment + remainingInstallments) : 1);
+
+            // Loop Count: How many items to generate?
+            // Fixed: 12.
+            // Installment: All of them (from 1 to Total). We generate ALL history to safeguard coherence.
+            // Standard: 1.
+            const loopCount = isFixed ? 12 : (isInstallment ? totalInstallmentsCount : 1);
 
             const groupId = (typeof crypto !== 'undefined' && crypto.randomUUID)
                 ? crypto.randomUUID()
@@ -87,27 +96,19 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                 }
             }
 
-            // Calculate amount per month
-            // For Fixed/Recurring, the amount entered is usually the MONTHLY amount, not total. 
-            // BUT for standard installments, amount is TOTAL.
-            // Assumption for "Fixed (Rent)": User enters the monthly value.
-            // Assumption for "Installments": User enters TOTAL value.
-            // Let's stick to the current logic: "Amount" is the value to be split per iteration if Fixed? 
-            // Wait, usually "Fixed" means "This value every month". "Installment" means "Total / N".
-            // If I change this now it might be confusing. 
-            // Let's look at EditTransactionModal. It treats Amount as the value of the transaction.
-            // If I select "Fixed", the user likely expects "This is the value of the rent".
-            // If I select "Installment", the user likely expects "This is the total purchase price".
+            // Calculation Logic:
+            // - If Installment: Input Amount IS the PARCEL value.
+            // - If Fixed: Input Amount IS the MONTHLY value.
+            // - If Standard: Input Amount IS the TOTAL value.
 
-            // Refined Logic:
-            // If isFixed: monthlyTotal = totalAmount (The input IS the monthly value)
-            // If !isFixed: monthlyTotal = totalAmount / numInstallments (Standard split logic)
+            let monthlyTotal = totalAmount;
 
-            const monthlyTotal = isFixed ? totalAmount : (totalAmount / numInstallments);
+            if (!isFixed && !isInstallment) {
+                // Standard split: Total amount is divided by 1 month.
+                monthlyTotal = totalAmount;
+            }
 
             // Amount owed per friend
-            // If half: Total is shared between User + Friends equally. Each friend owes 1/(N+1)
-            // If full: Total is shared between Friends only. Each friend owes 1/N
             const divisor = splitType === 'half' ? (resolvedFriends.length + 1) : resolvedFriends.length;
             const monthlyOwed = monthlyTotal / divisor;
 
@@ -116,9 +117,21 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
 
             const baseDate = new Date(date + 'T00:00:00');
 
-            for (let i = 0; i < numInstallments; i++) {
+            for (let i = 0; i < loopCount; i++) {
+                // Calculate actual installment number (1-based)
+                const actualInstallmentNumber = i + 1;
+
+                // Date Calculation
                 const installmentDate = new Date(baseDate);
-                installmentDate.setMonth(baseDate.getMonth() + i);
+                if (isInstallment) {
+                    // Logic: baseDate entered by user usually refers to the CURRENT installment date.
+                    // Shift = (Actual - Current). 
+                    const shift = actualInstallmentNumber - currentInstallment;
+                    installmentDate.setMonth(baseDate.getMonth() + shift);
+                } else {
+                    // Fixed or Standard: Just add i months
+                    installmentDate.setMonth(baseDate.getMonth() + i);
+                }
 
                 const currentBillingDate = isNextInvoice
                     ? new Date(installmentDate.getFullYear(), installmentDate.getMonth() + 1, 1).toISOString().split('T')[0]
@@ -129,12 +142,12 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                     .from('split_expenses')
                     .insert([{
                         created_by: user.id,
-                        description: isFixed ? description : (isInstallment ? `${description} (${i + 1}/${numInstallments})` : description),
+                        description: isFixed ? description : (isInstallment ? `${description} (${actualInstallmentNumber}/${totalInstallmentsCount})` : description),
                         amount: monthlyTotal,
                         date: installmentDate.toISOString(),
                         group_id: groupId,
-                        installment_number: i + 1,
-                        total_installments: isFixed ? null : numInstallments, // Null indicates fixed/recurring without specific end in UI (though we generate 12)
+                        installment_number: actualInstallmentNumber,
+                        total_installments: isFixed ? null : totalInstallmentsCount,
                         billing_date: currentBillingDate
                     }])
                     .select()
@@ -168,8 +181,8 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                             category: 'Rateio', // Requested fixed category
                             type: 'expense',
                             group_id: groupId,
-                            installment_number: i + 1,
-                            total_installments: isFixed ? null : numInstallments,
+                            installment_number: actualInstallmentNumber,
+                            total_installments: isFixed ? null : totalInstallmentsCount,
                             billing_date: currentBillingDate
                         }]);
 
@@ -179,9 +192,9 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
 
             onSuccess();
             onClose();
-        } catch (error: any) {
+        } catch (error) {
             console.error('Error creating split:', error);
-            alert('Erro ao criar rateio: ' + (error.message || 'Erro desconhecido'));
+            alert('Erro ao criar rateio');
         } finally {
             setLoading(false);
         }
@@ -211,7 +224,7 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-1">Valor Total (R$)</label>
+                        <label className="block text-sm font-medium text-text-secondary mb-1">Valor {isInstallment ? 'da Parcela' : 'Total'} (R$)</label>
                         <input
                             type="number"
                             step="0.01"
@@ -234,72 +247,75 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                         />
                     </div>
 
-                    {/* People Selection */}
                     <div>
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center justify-between mb-1">
                             <label className="block text-sm font-medium text-text-secondary">Pessoas Participantes</label>
                             <button
                                 type="button"
                                 onClick={handleAddCustomFriend}
-                                className="text-xs text-primary font-bold hover:underline flex items-center gap-1"
+                                className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
                             >
                                 <span className="material-symbols-outlined text-[14px]">add</span>
                                 Nova Pessoa
                             </button>
                         </div>
 
-                        <div className="flex flex-wrap gap-2 mb-3">
-                            {selectedFriends.map((sf, idx) => (
-                                <div key={idx} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold">
-                                    <span>{sf.name}</span>
-                                    <button type="button" onClick={() => handleRemoveFriendSelection(idx)} className="hover:text-red-500">
-                                        <span className="material-symbols-outlined text-[14px]">close</span>
-                                    </button>
-                                </div>
-                            ))}
-                            {selectedFriends.length === 0 && (
-                                <p className="text-[10px] text-gray-500 italic">Ninguém selecionado.</p>
-                            )}
-                        </div>
+                        {selectedFriends.length === 0 ? (
+                            <p className="text-xs text-gray-400 italic mb-2">Ninguém selecionado.</p>
+                        ) : (
+                            <div className="flex flex-wrap gap-2 mb-2">
+                                {selectedFriends.map((friend, idx) => (
+                                    <span key={idx} className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded-full">
+                                        {friend.name}
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveFriendSelection(idx)}
+                                            className="hover:text-red-500"
+                                        >
+                                            <span className="material-symbols-outlined text-[14px]">close</span>
+                                        </button>
+                                    </span>
+                                ))}
+                            </div>
+                        )}
 
                         <select
-                            onChange={(e) => handleAddFriendSelection(e.target.value)}
-                            value=""
-                            className="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm text-text-main dark:text-white"
+                            onChange={(e) => {
+                                handleAddFriendSelection(e.target.value);
+                                e.target.value = '';
+                            }}
+                            className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-medium text-text-main dark:text-white cursor-pointer"
                         >
                             <option value="">Adicionar da lista...</option>
                             {friends.map(f => (
-                                <option key={f.id} value={f.id} disabled={selectedFriends.some(sf => sf.id === f.id)}>{f.name}</option>
+                                <option key={f.id} value={f.id}>{f.name}</option>
                             ))}
                         </select>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-text-secondary mb-2">Como deseja dividir?</label>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="flex gap-2 mb-2">
                             <button
                                 type="button"
                                 onClick={() => setSplitType('half')}
-                                className={`py-2 rounded-lg border text-sm font-bold transition-all ${splitType === 'half' ? 'bg-primary border-primary text-white' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-400'}`}
+                                className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border ${splitType === 'half' ? 'bg-primary border-primary text-white shadow-md shadow-primary/25' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
                             >
-                                {selectedFriends.length > 1 ? 'Partes Iguais (Incluindo Eu)' : '50/50'}
+                                50/50
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setSplitType('full')}
-                                className={`py-2 rounded-lg border text-sm font-bold transition-all ${splitType === 'full' ? 'bg-primary border-primary text-white' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-400'}`}
+                                className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border ${splitType === 'full' ? 'bg-primary border-primary text-white shadow-md shadow-primary/25' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
                             >
-                                {selectedFriends.length > 1 ? 'Só entre Amigos' : 'Tudo para Amigo'}
+                                Tudo para Amigo
                             </button>
                         </div>
-                        <p className="text-[10px] text-gray-500 mt-2 px-1">
-                            {splitType === 'half'
-                                ? `O valor será dividido igualmente entre você e ${selectedFriends.length === 1 ? 'o amigo' : 'os amigos'}.`
-                                : `O valor será dividido integralmente entre ${selectedFriends.length === 1 ? 'o amigo' : 'os amigos'}.`}
+                        <p className="text-[10px] text-gray-400">
+                            {splitType === 'half' ? 'O valor será dividido igualmente entre você e os amigos.' : 'Os amigos pagarão o valor total (você pagou, eles te devem tudo).'}
                         </p>
                     </div>
 
-                    {/* Fixed / Installments Toggles */}
                     <div className="grid grid-cols-2 gap-3">
                         {/* Fixed Toggle */}
                         <div
@@ -329,36 +345,60 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                     </div>
 
                     {isInstallment && (
-                        <div>
-                            <label className="block text-sm font-medium text-text-secondary mb-1">Número de Parcelas</label>
-                            <select
-                                value={installmentsCount}
-                                onChange={(e) => setInstallmentsCount(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-medium text-text-main dark:text-white"
-                            >
-                                {[...Array(12)].map((_, i) => (
-                                    <option key={i + 1} value={String(i + 1)}>{i + 1}x</option>
-                                ))}
-                            </select>
+                        <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-[10px] font-bold text-primary mb-1 uppercase tracking-wider">Parcela Atual</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={currentInstallment}
+                                    onChange={(e) => setCurrentInstallment(Number(e.target.value))}
+                                    className="w-full px-3 py-2 bg-white border border-primary/20 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-bold text-primary"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold text-primary mb-1 uppercase tracking-wider">Parcelas Restantes</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={remainingInstallments}
+                                    onChange={(e) => setRemainingInstallments(Number(e.target.value))}
+                                    className="w-full px-3 py-2 bg-white border border-primary/20 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-bold text-primary"
+                                />
+                            </div>
+                            <p className="col-span-2 text-[10px] text-gray-500 italic">
+                                * Serão criadas {remainingInstallments + 1} transações (De {currentInstallment} até {currentInstallment + remainingInstallments}) vinculadas.
+                            </p>
                         </div>
                     )}
 
-                    {/* Next Invoice Toggle */}
-                    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 mt-2">
-                        <div className="flex flex-col">
-                            <div className="flex items-center gap-2">
-                                <span className="material-symbols-outlined text-text-secondary text-sm">event_repeat</span>
-                                <span className="text-sm font-medium text-text-main dark:text-white">Lançar na próxima fatura?</span>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
+                        <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-gray-500">calendar_month</span>
+                            <div className="flex flex-col">
+                                <span className="text-sm font-bold text-text-main dark:text-white">Lançar na próxima fatura?</span>
+                                <span className="text-[10px] text-gray-400">Contabiliza no orçamento do próximo mês.</span>
                             </div>
-                            <span className="text-[10px] text-gray-500 italic ml-6">Contabiliza no orçamento do próximo mês.</span>
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => setIsNextInvoice(!isNextInvoice)}
-                            className={`w-10 h-5 rounded-full transition-colors relative ${isNextInvoice ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-700'}`}
-                        >
-                            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${isNextInvoice ? 'left-5.5' : 'left-0.5'}`}></div>
-                        </button>
+                        <div className="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
+                            <input
+                                checked={isNextInvoice}
+                                onChange={(e) => setIsNextInvoice(e.target.checked)}
+                                type="checkbox"
+                                name="toggle"
+                                id="toggle-invoice"
+                                className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                                style={{
+                                    right: isNextInvoice ? '0' : 'auto',
+                                    left: isNextInvoice ? 'auto' : '0',
+                                    borderColor: isNextInvoice ? '#1A6020' : '#E5E7EB'
+                                }}
+                            />
+                            <label
+                                htmlFor="toggle-invoice"
+                                className={`toggle-label block overflow-hidden h-5 rounded-full cursor-pointer ${isNextInvoice ? 'bg-primary' : 'bg-gray-300'}`}
+                            ></label>
+                        </div>
                     </div>
 
                     <div className="flex gap-3 mt-4">
@@ -371,7 +411,7 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                         </button>
                         <button
                             type="submit"
-                            disabled={loading || selectedFriends.length === 0}
+                            disabled={loading}
                             className="flex-1 py-3 rounded-xl font-bold text-white bg-primary hover:bg-primary-hover shadow-lg shadow-primary/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? 'Criando...' : 'Criar Rateio'}

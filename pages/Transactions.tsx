@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import NewExpenseModal from '../components/NewExpenseModal';
 import EditTransactionModal from '../components/EditTransactionModal';
+import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 
 const Transactions: React.FC = () => {
   const [showNewExpenseModal, setShowNewExpenseModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
+  const [transactionToDelete, setTransactionToDelete] = useState<any>(null);
   const [modalType, setModalType] = useState<'income' | 'expense'>('expense');
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,29 +50,29 @@ const Transactions: React.FC = () => {
     setShowNewExpenseModal(true);
   };
 
-  const handleDelete = async (transaction: any) => {
-    let deleteMode: 'only' | 'all' = 'only';
+  const handleOpenDeleteModal = (transaction: any) => {
+    setTransactionToDelete(transaction);
+    setShowDeleteModal(true);
+  };
 
-    if (transaction.group_id) {
-      const confirmAll = confirm('Esta é uma transação parcelada. Deseja excluir apenas esta parcela (Cancelar) ou esta e todas as futuras (OK)?');
-      deleteMode = confirmAll ? 'all' : 'only';
-    } else {
-      if (!confirm('Tem certeza que deseja excluir esta transação?')) return;
-    }
+  const confirmDelete = async (deleteMode: 'only' | 'all') => {
+    if (!transactionToDelete) return;
 
     try {
       let query = supabase.from('transactions').delete();
 
-      if (deleteMode === 'all' && transaction.group_id) {
-        query = query.eq('group_id', transaction.group_id).gte('installment_number', transaction.installment_number);
+      if (deleteMode === 'all' && transactionToDelete.group_id) {
+        query = query.eq('group_id', transactionToDelete.group_id).gte('installment_number', transactionToDelete.installment_number);
       } else {
-        query = query.eq('id', transaction.id);
+        query = query.eq('id', transactionToDelete.id);
       }
 
       const { error } = await query;
       if (error) throw error;
 
       fetchTransactions();
+      setShowDeleteModal(false);
+      setTransactionToDelete(null);
     } catch (error: any) {
       alert('Erro ao excluir: ' + error.message);
     }
@@ -371,7 +374,7 @@ const Transactions: React.FC = () => {
                           <span className="material-symbols-outlined text-[18px]">edit</span>
                         </button>
                         <button
-                          onClick={() => handleDelete(t)}
+                          onClick={() => handleOpenDeleteModal(t)}
                           className="text-gray-400 hover:text-expense p-1.5 rounded-lg hover:bg-expense/5 transition-colors"
                           title="Excluir"
                         >
@@ -403,6 +406,18 @@ const Transactions: React.FC = () => {
             setEditingTransaction(null);
           }}
           onSuccess={handleSuccess}
+        />
+      )}
+
+      {showDeleteModal && transactionToDelete && (
+        <DeleteConfirmationModal
+          isOpen={showDeleteModal}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setTransactionToDelete(null);
+          }}
+          onConfirm={confirmDelete}
+          isRecurring={!!transactionToDelete.group_id}
         />
       )}
     </div>

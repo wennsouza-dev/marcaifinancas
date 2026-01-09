@@ -100,6 +100,9 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
     try {
       const numericAmount = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
       const groupId = isInstallment ? crypto.randomUUID() : null;
+
+      // Calculate Total Installments based on user input (Current + Remaining)
+      // e.g. Current=5, Remaining=5 => Total=10.
       const totalInstallments = isInstallment ? Number(currentInstallment) + Number(remainingInstallments) : null;
 
       const transactionsToInsert = [];
@@ -107,21 +110,34 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
       const baseDate = new Date(date + 'T00:00:00');
 
       if (isInstallment) {
-        const count = Number(remainingInstallments) + 1;
+        // Generate ALL installments (from 1 to Total) to keep history consistent
+        // Loop count is the Total Number of Installments
+        const count = totalInstallments || 1;
+
         for (let i = 0; i < count; i++) {
+          const actualInstallmentNumber = i + 1;
+
+          // Calculate Date Logic:
+          // User input 'date' usually refers to the CURRENT installment date.
+          // We need to shift the date based on the difference between Actual and Current.
+          // Shift = Actual - Current.
+          // e.g. Current=5 (May). Actual=1. Shift = 1-5 = -4 months. (Jan)
+          // e.g. Current=5 (May). Actual=6. Shift = 6-5 = +1 month. (Jun)
+
+          const shift = actualInstallmentNumber - Number(currentInstallment);
+
           const installmentDate = new Date(baseDate);
-          // Increment month while trying to keep the same day
-          installmentDate.setMonth(baseDate.getMonth() + i);
+          installmentDate.setMonth(baseDate.getMonth() + shift);
 
           transactionsToInsert.push({
             user_id: user.id,
-            description: `${description} (${Number(currentInstallment) + i}/${totalInstallments})`,
+            description: `${description} (${actualInstallmentNumber}/${totalInstallments})`,
             amount: numericAmount,
             date: installmentDate.toISOString().split('T')[0],
             category,
             type,
             group_id: groupId,
-            installment_number: Number(currentInstallment) + i,
+            installment_number: actualInstallmentNumber,
             total_installments: totalInstallments,
             billing_date: refMonthShift !== 0 ? new Date(installmentDate.getFullYear(), installmentDate.getMonth() + refMonthShift, 1).toISOString().split('T')[0] : null
           });
