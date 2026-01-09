@@ -76,7 +76,7 @@ export const useFinancialAdvisor = (transactions: any[], stats: any) => {
             const errorMsg: ChatMessage = {
                 id: crypto.randomUUID(),
                 role: 'assistant',
-                text: "Desculpe, tive um problema ao analisar seus dados agora. Tente novamente.",
+                text: `Desculpe, tive um problema ao analisar seus dados. Erro: ${error.message || 'Desconhecido'}`,
                 timestamp: new Date()
             };
             setMessages(prev => [...prev, errorMsg]);
