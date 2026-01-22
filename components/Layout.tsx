@@ -28,11 +28,11 @@ const Layout: React.FC = () => {
       {/* Top Bar */}
       <header className="sticky top-0 z-50 w-full bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-gray-200 dark:border-white/10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3 text-emerald-700">
+          <div className="flex items-center gap-3 text-emerald-700 min-w-0 flex-1">
             <div className="size-8 md:size-10 flex items-center justify-center bg-emerald-100 rounded-lg text-emerald-700 shrink-0">
               <span className="material-symbols-outlined text-xl md:text-2xl">account_balance_wallet</span>
             </div>
-            <h1 className="text-emerald-800 dark:text-white text-lg md:text-xl font-bold leading-tight tracking-tight line-clamp-1">MarcAI Finanças</h1>
+            <h1 className="text-emerald-800 dark:text-white text-lg md:text-xl font-bold leading-tight tracking-tight break-words">MarcAI Finanças</h1>
           </div>
 
           <nav className="hidden md:flex flex-1 justify-center gap-6">

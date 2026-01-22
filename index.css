@@ -4,6 +4,7 @@
 body {
     background-color: #f6f8f6 !important;
     color: #101910 !important;
+    overflow-x: hidden;
 }
 
 /* Tailwind is loaded via CDN in index.html */

@@ -216,8 +216,8 @@ const Transactions: React.FC = () => {
 
       {/* Filters - Styled */}
       <div className="flex flex-col md:flex-row gap-4 mb-6 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
-        <div className="flex gap-3 flex-1 overflow-x-auto pb-1 md:pb-0">
-          <div className="flex gap-2">
+        <div className="flex gap-3 flex-1 overflow-x-auto pb-1 md:pb-0 scrollbar-hide snap-x">
+          <div className="flex gap-2 snap-start">
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
@@ -265,129 +265,101 @@ const Transactions: React.FC = () => {
       </div>
 
       {/* Transactions List */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Data</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Descrição</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Categoria</th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Valor</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
-                    <div className="flex flex-col items-center gap-2">
-                      <span className="material-symbols-outlined animate-spin">progress_activity</span>
-                      <span className="text-sm">Carregando...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredTransactions.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
-                    <div className="flex flex-col items-center gap-2">
-                      <span className="material-symbols-outlined text-4xl opacity-20">receipt_long</span>
-                      <span className="text-sm">Nenhuma transação encontrada.</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredTransactions.map((t) => (
-                  <tr key={t.id} className="hover:bg-gray-50/80 transition-colors group">
-                    {/* Data */}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
-                      <div className="flex flex-col">
-                        <span className="text-text-main font-bold">{new Date(t.date + 'T00:00:00').getDate().toString().padStart(2, '0')} {new Date(t.date + 'T00:00:00').toLocaleString('pt-BR', { month: 'short' })}</span>
-                        <span className="text-xs text-gray-400">{new Date(t.date + 'T00:00:00').getFullYear()}</span>
-                      </div>
-                    </td>
+      <div className="space-y-3">
+        {loading ? (
+          <div className="bg-white dark:bg-surface-dark rounded-xl p-6 text-center text-gray-500 border border-gray-100 dark:border-white/5 shadow-sm">
+            <div className="flex flex-col items-center gap-2">
+              <span className="material-symbols-outlined animate-spin">progress_activity</span>
+              <span className="text-sm">Carregando...</span>
+            </div>
+          </div>
+        ) : filteredTransactions.length === 0 ? (
+          <div className="bg-white dark:bg-surface-dark rounded-xl p-6 text-center text-gray-500 border border-gray-100 dark:border-white/5 shadow-sm">
+            <div className="flex flex-col items-center gap-2">
+              <span className="material-symbols-outlined text-4xl opacity-20">receipt_long</span>
+              <span className="text-sm">Nenhuma transação encontrada.</span>
+            </div>
+          </div>
+        ) : (
+          filteredTransactions.map((t) => (
+            <div key={t.id} className="bg-white dark:bg-surface-dark p-4 rounded-xl border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              {/* Left Side: Icon + Details */}
+              <div className="flex items-center gap-4 w-full sm:w-auto">
+                <div className={`size-12 rounded-full flex items-center justify-center shrink-0 ${t.type === 'income' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'
+                  }`}>
+                  <span className="material-symbols-outlined filled text-[24px]">
+                    {t.category === 'Alimentação' ? 'restaurant' :
+                      t.category === 'Transporte' ? 'directions_car' :
+                        t.category === 'Lazer' ? 'movie' :
+                          t.category === 'Moradia' ? 'home' :
+                            t.type === 'income' ? 'account_balance_wallet' : 'shopping_bag'}
+                  </span>
+                </div>
 
-                    {/* Descrição */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${t.type === 'income' ? 'bg-blue-50 text-blue-500' : 'bg-orange-50 text-orange-500'
-                          }`}>
-                          <span className="material-symbols-outlined filled text-[20px]">
-                            {t.category === 'Alimentação' ? 'restaurant' :
-                              t.category === 'Transporte' ? 'directions_car' :
-                                t.category === 'Lazer' ? 'movie' :
-                                  t.category === 'Moradia' ? 'home' :
-                                    t.type === 'income' ? 'account_balance_wallet' : 'shopping_bag'}
-                          </span>
-                        </div>
-                        <div className="flex flex-col min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-sm font-bold text-text-main dark:text-white truncate max-w-[120px] sm:max-w-none">{t.description}</p>
-                            {t.billing_date && (
-                              <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded border border-blue-100 flex items-center gap-1 shrink-0">
-                                <span className="material-symbols-outlined text-[12px]">calendar_month</span>
-                                Ref: {new Date(t.billing_date + 'T00:00:00').toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-gray-500 dark:text-gray-400">{new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
-                          <span className="text-[10px] text-gray-400 truncate">{t.type === 'income' ? 'Receita recebida' : 'Pagamento realizado'}</span>
-                        </div>
-                      </div>
-                    </td>
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <p className="text-base font-bold text-text-main dark:text-white break-words leading-tight">{t.description}</p>
+                    {t.billing_date && (
+                      <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded border border-blue-100 flex items-center gap-1 shrink-0">
+                        <span className="material-symbols-outlined text-[12px]">calendar_month</span>
+                        {new Date(t.billing_date + 'T00:00:00').toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}
+                      </span>
+                    )}
+                  </div>
 
-                    {/* Categoria */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${t.category === 'Alimentação' ? 'bg-orange-100 text-orange-700' :
+                  <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[14px]">calendar_today</span>
+                      {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${t.category === 'Alimentação' ? 'bg-orange-100 text-orange-700' :
                         t.category === 'Transporte' ? 'bg-purple-100 text-purple-700' :
                           t.category === 'Lazer' ? 'bg-cyan-100 text-cyan-700' :
                             'bg-gray-100 text-gray-600'
-                        }`}>
-                        {t.category}
-                      </span>
-                    </td>
-
-                    {/* Valor */}
-                    <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-bold ${t.type === 'income' ? 'text-emerald-600' : 'text-expense'
                       }`}>
-                      <div className="flex flex-col items-end">
-                        <span>{t.type === 'income' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        {t.total_installments > 0 && (
-                          <span className="text-[10px] bg-primary/10 text-primary px-1.5 rounded font-bold">
-                            {t.installment_number}/{t.total_installments}
-                          </span>
-                        )}
-                      </div>
-                    </td>
+                      {t.category}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-                    {/* Ações */}
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => {
-                            setEditingTransaction(t);
-                            setShowEditModal(true);
-                          }}
-                          className="text-gray-400 hover:text-primary p-1.5 rounded-lg hover:bg-primary/5 transition-colors"
-                          title="Editar"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">edit</span>
-                        </button>
-                        <button
-                          onClick={() => handleOpenDeleteModal(t)}
-                          className="text-gray-400 hover:text-expense p-1.5 rounded-lg hover:bg-expense/5 transition-colors"
-                          title="Excluir"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+              {/* Right Side: Amount + Actions */}
+              <div className="flex items-center justify-between w-full sm:w-auto sm:justify-end gap-6 sm:gap-8 pl-[64px] sm:pl-0 mt-[-8px] sm:mt-0">
+                <div className="flex flex-col items-start sm:items-end">
+                  <p className="text-xs text-gray-400 mb-0.5">{t.type === 'income' ? 'Recebido' : 'Pago'}</p>
+                  <span className={`text-base font-bold whitespace-nowrap ${t.type === 'income' ? 'text-emerald-600' : 'text-expense'}`}>
+                    {t.type === 'income' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                  {t.total_installments > 0 && (
+                    <span className="text-[10px] bg-primary/10 text-primary px-1.5 rounded font-bold mt-1">
+                      {t.installment_number}/{t.total_installments}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      setEditingTransaction(t);
+                      setShowEditModal(true);
+                    }}
+                    className="p-2 text-gray-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
+                    title="Editar"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">edit</span>
+                  </button>
+                  <button
+                    onClick={() => handleOpenDeleteModal(t)}
+                    className="p-2 text-gray-400 hover:text-expense hover:bg-expense/5 rounded-lg transition-colors"
+                    title="Excluir"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {showNewExpenseModal && (

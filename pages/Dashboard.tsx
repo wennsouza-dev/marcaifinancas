@@ -275,7 +275,7 @@ const Dashboard: React.FC = () => {
                       </span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-text-main dark:text-white truncate">{t.description}</p>
+                      <p className="text-sm font-bold text-text-main dark:text-white break-words">{t.description}</p>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400">{new Date(t.date).toLocaleDateString('pt-BR')}</p>
                     </div>
                   </div>
@@ -320,7 +320,7 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex flex-wrap sm:flex-nowrap gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <button
           onClick={() => openModal('income')}
           className="flex-1 h-12 sm:h-14 bg-primary text-white rounded-xl shadow-lg shadow-primary/20 font-bold hover:bg-primary-hover transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm sm:text-base"
