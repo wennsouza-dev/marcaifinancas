@@ -11,6 +11,7 @@ interface SpeechRecognition extends EventTarget {
     onresult: (event: any) => void;
     onerror: (event: any) => void;
     onend: () => void;
+    maxAlternatives: number;
 }
 
 declare global {
@@ -43,8 +44,9 @@ export const useSpeechRecognition = (onResultCallback?: (text: string) => void) 
             if (SpeechRecognition) {
                 const recog = new SpeechRecognition();
                 recog.continuous = false; // Parar quando o usuário parar de falar
-                recog.interimResults = false; // Só queremos o resultado final
+                recog.interimResults = true; // Set to true to get results faster on mobile
                 recog.lang = 'pt-BR';
+                recog.maxAlternatives = 1;
 
                 recog.onresult = (event: any) => {
                     let currentTranscript = '';
@@ -52,8 +54,20 @@ export const useSpeechRecognition = (onResultCallback?: (text: string) => void) 
                         currentTranscript += event.results[i][0].transcript;
                     }
                     setTranscript(currentTranscript);
-                    if (callbackRef.current) {
-                        callbackRef.current(currentTranscript);
+
+                    // On mobile, sometimes it triggers onresult but doesn't auto-stop
+                    // If it's final, we can stop it and trigger callback
+                    if (event.results[0] && event.results[0].isFinal) {
+                        if (callbackRef.current) {
+                            callbackRef.current(currentTranscript);
+                        }
+                        recog.stop();
+                        setIsRecording(false);
+                    } else if (!recog.interimResults) {
+                        // If we don't care about interim, and it triggered, it's usually final enough for our single-shot
+                        if (callbackRef.current) {
+                            callbackRef.current(currentTranscript);
+                        }
                     }
                 };
 
@@ -79,22 +93,38 @@ export const useSpeechRecognition = (onResultCallback?: (text: string) => void) 
         if (recognition) {
             setError(null);
             setTranscript('');
+
+            // On mobile, try-catch isn't enough, we need to ensure it's not already running
+            if (isRecording) {
+                recognition.stop();
+            }
+
             try {
                 recognition.start();
                 setIsRecording(true);
             } catch (e: any) {
                 console.error("Failed to start recording:", e);
-                setError("failed-to-start");
+                // Sometimes it fails if already started, just ignore or reset
+                if (e.name === 'NotAllowedError') {
+                    setError("not-allowed");
+                } else {
+                    setError("failed-to-start");
+                }
+                setIsRecording(false);
             }
         }
-    }, [recognition]);
+    }, [recognition, isRecording]);
 
     const stopRecording = useCallback(() => {
-        if (recognition) {
-            recognition.stop();
+        if (recognition && isRecording) {
+            try {
+                recognition.stop();
+            } catch (e) {
+                console.warn('stop error', e);
+            }
             setIsRecording(false);
         }
-    }, [recognition]);
+    }, [recognition, isRecording]);
 
     return {
         isRecording,
