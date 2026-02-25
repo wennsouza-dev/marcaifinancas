@@ -25,7 +25,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
     setProcessingAudio(true);
     try {
       console.log('Audio Result Start - Received text:', text);
-      const parsed = await parseTransactionFromAudio(text);
+      const { data: parsed, error, rawTranscript } = await parseTransactionFromAudio(text);
       console.log('Audio Result Parsed:', parsed);
 
       if (parsed) {
@@ -53,11 +53,11 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
           setIsInstallment(false);
         }
       } else {
-        alert('Não foi possível extrair os dados do áudio. Tente falar novamente.');
+        alert(`Não foi possível extrair dados.\n\nTexto Entendido: "${rawTranscript || text}"\nErro: ${error || 'Desconhecido'}\n\nTente falar novamente.`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Audio processing error", err);
-      alert('Erro ao processar o áudio.');
+      alert(`Erro ao processar o áudio: ${err.message || 'Desconhecido'}`);
     } finally {
       setProcessingAudio(false);
     }

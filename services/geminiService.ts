@@ -11,10 +11,10 @@ export interface ParsedTransaction {
     installmentsCount: number;
 }
 
-export const parseTransactionFromAudio = async (text: string): Promise<ParsedTransaction | null> => {
+export const parseTransactionFromAudio = async (text: string): Promise<{ data: ParsedTransaction | null, error?: string, rawTranscript?: string }> => {
     if (!API_KEY) {
         console.error('API Key do Gemini não configurada!');
-        return null;
+        return { data: null, error: 'API Key do Gemini não configurada!' };
     }
 
     try {
@@ -80,11 +80,11 @@ export const parseTransactionFromAudio = async (text: string): Promise<ParsedTra
         }
 
         const parsedData = JSON.parse(cleanedJsonString) as ParsedTransaction;
-        return parsedData;
+        return { data: parsedData, rawTranscript: text };
 
     } catch (error: any) {
         console.error("Gemini Parse Error:", error);
-        return null;
+        return { data: null, error: error.message || 'Erro desconhecido ao parsear o JSON', rawTranscript: text };
     }
 };
 
