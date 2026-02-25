@@ -13,7 +13,7 @@ export interface ChatMessage {
     }
 }
 
-export const useFinancialAdvisor = (transactions: any[], stats: any) => {
+export const useFinancialAdvisor = (transactions: any[], stats: any, onActionReceived?: (type: 'income' | 'expense', text: string) => void) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -60,6 +60,10 @@ export const useFinancialAdvisor = (transactions: any[], stats: any) => {
                     if (parsed.action === 'ADD_TRANSACTION') {
                         actionContent = parsed;
                         actionText = "Claro! Posso registrar isso para você. Confirme a ação no botão abaixo.";
+                        // Automatically trigger actions
+                        if (onActionReceived) {
+                            onActionReceived(parsed.transactionType, parsed.text);
+                        }
                     }
                 }
             } catch (e) {

@@ -11,7 +11,12 @@ interface Props {
 const FinancialAdvisorWidget: React.FC<Props> = ({ transactions, stats, onAddTransaction }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [input, setInput] = useState('');
-    const { messages, sendMessage, loading } = useFinancialAdvisor(transactions, stats);
+    const { messages, sendMessage, loading } = useFinancialAdvisor(transactions, stats, (type, text) => {
+        if (onAddTransaction) {
+            onAddTransaction(type, text);
+            setIsOpen(false);
+        }
+    });
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {

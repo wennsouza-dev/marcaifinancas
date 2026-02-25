@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from "npm:@google/generative-ai"
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 serve(async (req) => {
@@ -20,46 +21,66 @@ serve(async (req) => {
         }
 
         const genAI = new GoogleGenerativeAI(apiKey.trim())
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
-        const systemInstruction = `
-        Você é o MarcAI, um consultor financeiro inteligente da plataforma "MarcAI Finanças".
-        Sempre responda em português do Brasil de forma concisa, educada e direta.
-        Você pode ajudar o usuário analisando suas transações e dados de resumo (Estatísticas do mês).
-        
-        Se o usuário quiser *adicionar* ou *registrar* uma transação de entrada ou saída no texto, retorne APENAS um JSON estrito no seguinte formato para que o sistema execute a ação:
-        \`\`\`json
-        {
-          "action": "ADD_TRANSACTION",
-          "transactionType": "expense" ou "income",
-          "text": "frase extraída que descreve a transação"
+        const modelsToTry = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
+        let success = false;
+        let responseText = "";
+        let firstError;
+
+        for (const modelName of modelsToTry) {
+            try {
+                console.log("Trying model for analysis:", modelName);
+                const model = genAI.getGenerativeModel({ model: modelName })
+
+                const systemInstruction = `
+            Você é o MarcAI, um consultor financeiro inteligente da plataforma "MarcAI Finanças".
+            Sempre responda em português do Brasil de forma concisa, educada e direta.
+            Você pode ajudar o usuário analisando suas transações e dados de resumo (Estatísticas do mês).
+            
+            Se o usuário quiser *adicionar* ou *registrar* uma transação de entrada ou saída no texto, retorne APENAS um JSON estrito no seguinte formato para que o sistema execute a ação:
+            \`\`\`json
+            {
+              "action": "ADD_TRANSACTION",
+              "transactionType": "expense" ou "income",
+              "text": "frase extraída que descreve a transação"
+            }
+            \`\`\`
+            Exemplo: Usuário fala "Adiciona um almoço de 50 reais". 
+            Você retorna o texto cru exato: 
+            \`\`\`json
+            {"action": "ADD_TRANSACTION", "transactionType": "expense", "text": "almoço de 50 reais"}
+            \`\`\`
+
+            Se o usuário estiver apenas fazendo uma pergunta (ex: "quanto eu gastei de comida?"), responda normalmente em texto plano humanizado, analisando os dados:
+            Estatísticas do Mês Atual: 
+            Receitas (Total): R$ ${stats.income}
+            Despesas (Total): R$ ${stats.expenses}
+            Saldo Atual: R$ ${stats.balance}
+
+            Transações recentes:
+            ${JSON.stringify(transactions.slice(0, 30))}
+        `;
+
+                const chat = model.startChat({
+                    history: history,
+                    systemInstruction: { role: 'system', parts: [{ text: systemInstruction }] }
+                });
+
+                const result = await chat.sendMessage(message);
+                responseText = result.response.text();
+                success = true;
+                break;
+            } catch (err: any) {
+                console.warn(`Model ${modelName} failed:`, err.message);
+                if (!firstError) firstError = err;
+            }
         }
-        \`\`\`
-        Exemplo: Usuário fala "Adiciona um almoço de 50 reais". 
-        Você retorna o texto cru exato: 
-        \`\`\`json
-        {"action": "ADD_TRANSACTION", "transactionType": "expense", "text": "almoço de 50 reais"}
-        \`\`\`
 
-        Se o usuário estiver apenas fazendo uma pergunta (ex: "quanto eu gastei de comida?"), responda normalmente em texto plano humanizado, analisando os dados:
-        Estatísticas do Mês Atual: 
-        Receitas (Total): R$ ${stats.income}
-        Despesas (Total): R$ ${stats.expenses}
-        Saldo Atual: R$ ${stats.balance}
+        if (!success) {
+            throw firstError || new Error("All Gemini models failed");
+        }
 
-        Transações recentes:
-        ${JSON.stringify(transactions.slice(0, 30))}
-    `;
-
-        const chat = model.startChat({
-            history: history,
-            systemInstruction: { role: 'system', parts: [{ text: systemInstruction }] }
-        });
-
-        const result = await chat.sendMessage(message);
-        const text = result.response.text();
-
-        return new Response(JSON.stringify({ reply: text }), {
+        return new Response(JSON.stringify({ reply: responseText }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
         })

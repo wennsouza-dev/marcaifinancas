@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from "npm:@google/generative-ai"
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 serve(async (req) => {
@@ -68,7 +69,7 @@ serve(async (req) => {
         `;
         }
 
-        const modelsToTry = ["gemini-2.0-flash", "gemini-flash-latest", "gemini-2.5-flash", "gemini-1.5-flash", "gemini-pro"];
+        const modelsToTry = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
         let jsonString = "";
         let success = false;
         let firstError;
