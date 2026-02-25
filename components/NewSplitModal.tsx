@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
+import { parseSplitTransactionFromAudio } from '../services/geminiService';
 
 interface NewSplitModalProps {
     onClose: () => void;
@@ -24,6 +26,52 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
     const [remainingInstallments, setRemainingInstallments] = useState(0);
     const [isNextInvoice, setIsNextInvoice] = useState(false);
     const [isFixed, setIsFixed] = useState(false);
+
+    const [processingAudio, setProcessingAudio] = useState(false);
+
+    const handleAudioResult = async (text: string) => {
+        if (!text.trim()) return;
+        setProcessingAudio(true);
+        try {
+            console.log('Split Audio Result Start - Received text:', text);
+            const parsed = await parseSplitTransactionFromAudio(text);
+            console.log('Split Audio Result Parsed:', parsed);
+
+            if (parsed) {
+                setDescription(parsed.description);
+                setAmount(parsed.amount.toString());
+                setSplitType(parsed.splitType);
+
+                // Reconstruct selected friends based on names
+                if (parsed.friends && parsed.friends.length > 0) {
+                    const newSelectedFriends = parsed.friends.map(friendName => {
+                        // Try to find an exact match or clear substring match in existing friends
+                        const existingFriend = friends.find(f => f.name.toLowerCase() === friendName.toLowerCase() || f.name.toLowerCase().includes(friendName.toLowerCase()));
+                        if (existingFriend) {
+                            return { id: existingFriend.id, name: existingFriend.name };
+                        }
+                        return { name: friendName }; // New friend
+                    });
+
+                    // Filter out exact duplicates
+                    const uniqueFriends = newSelectedFriends.filter((friend, index, self) =>
+                        index === self.findIndex((t) => (t.id && t.id === friend.id) || (!t.id && t.name === friend.name))
+                    );
+
+                    setSelectedFriends(uniqueFriends);
+                }
+            } else {
+                alert('Não foi possível extrair os dados do rateio pelo áudio. Tente falar novamente.');
+            }
+        } catch (err) {
+            console.error("Audio split processing error", err);
+            alert('Erro ao processar o rateio por áudio.');
+        } finally {
+            setProcessingAudio(false);
+        }
+    };
+
+    const { isRecording, startRecording, stopRecording, hasSupport } = useSpeechRecognition(handleAudioResult);
 
     useEffect(() => {
         const fetchFriends = async () => {
@@ -204,11 +252,43 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
         <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center bg-black/50 backdrop-blur-sm p-4 pt-10 md:pt-4">
             <div className="bg-white dark:bg-surface-dark rounded-2xl w-full max-w-md p-6 shadow-xl animate-scale-up max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold text-text-main dark:text-white">Novo Rateio</h2>
+                    <h2 className="text-xl font-bold text-text-main dark:text-white flex items-center gap-2">
+                        Novo Rateio
+                        {processingAudio && <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full animate-pulse ml-2">Processando IA...</span>}
+                    </h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                         <span className="material-symbols-outlined">close</span>
                     </button>
                 </div>
+
+                {hasSupport && (
+                    <div className="mb-6 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-4 border border-indigo-100 dark:border-indigo-500/20 overflow-hidden relative">
+                        {isRecording && (
+                            <div className="absolute inset-0 bg-indigo-100/50 dark:bg-indigo-900/40 animate-pulse pointer-events-none"></div>
+                        )}
+                        <div className="flex items-center gap-3 relative z-10">
+                            <button
+                                type="button"
+                                onClick={isRecording ? stopRecording : startRecording}
+                                className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-all shadow-sm ${isRecording
+                                        ? 'bg-red-500 text-white animate-bounce shadow-red-200'
+                                        : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 hover:scale-105'
+                                    }`}
+                                title={isRecording ? "Parar gravação" : "Falar despesa"}
+                            >
+                                <span className="material-symbols-outlined text-2xl">
+                                    {isRecording ? 'stop_circle' : 'mic'}
+                                </span>
+                            </button>
+                            <div>
+                                <h4 className="font-bold text-indigo-900 dark:text-indigo-300 text-sm">Registro Inteligente</h4>
+                                <p className="text-xs text-indigo-700/80 dark:text-indigo-400 mt-0.5">
+                                    {isRecording ? "Ouvindo... Fale com clareza." : 'Ex: "Dividir um uber de 50 reais com a Nathy"'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                     <div>

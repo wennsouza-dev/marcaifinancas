@@ -39,9 +39,9 @@ const Reports: React.FC = () => {
   });
 
   const totalIncome = yearTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + Number(t.amount), 0);
-  const totalExpenses = yearTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + Number(t.amount), 0);
-  const annualBalance = totalIncome - totalExpenses;
-  const monthlyAverage = totalIncome / 12; // Or based on months with data? Let's use 12 for annual average.
+  const totalExpenses = yearTransactions.filter(t => t.type === 'expense' && t.category !== 'Investimentos' && t.category !== 'Investimento').reduce((acc, t) => acc + Number(t.amount), 0);
+  const totalInvested = yearTransactions.filter(t => t.type === 'expense' && (t.category === 'Investimentos' || t.category === 'Investimento')).reduce((acc, t) => acc + Number(t.amount), 0);
+  const annualBalance = totalIncome - (totalExpenses + totalInvested);
 
   // Monthly Evolution processing (12 months)
   const monthlyData = Array.from({ length: 12 }, (_, i) => {
@@ -88,8 +88,9 @@ const Reports: React.FC = () => {
 
     doc.setFontSize(10);
     doc.text(`Total Receitas: R$ ${totalIncome.toLocaleString('pt-BR')}`, 20, 65);
-    doc.text(`Total Despesas: R$ ${totalExpenses.toLocaleString('pt-BR')}`, 80, 65);
-    doc.text(`Saldo Final: R$ ${annualBalance.toLocaleString('pt-BR')}`, 140, 65);
+    doc.text(`Total Despesas: R$ ${totalExpenses.toLocaleString('pt-BR')}`, 75, 65);
+    doc.text(`Saldo Final: R$ ${annualBalance.toLocaleString('pt-BR')}`, 130, 65);
+    doc.text(`Investido: R$ ${totalInvested.toLocaleString('pt-BR')}`, 20, 75);
 
     // Monthly Table
     autoTable(doc, {
@@ -198,10 +199,11 @@ const Reports: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <ReportSummary title="Total Receitas" value={`R$ ${totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} trend="" icon="payments" color="primary" />
-        <ReportSummary title="Média Mensal" value={`R$ ${monthlyAverage.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} trend="" icon="calendar_today" color="gray" />
-        <ReportSummary title="Saldo Final" value={`R$ ${annualBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} trend="" icon="savings" color="success" />
+        <ReportSummary title="Total Despesas" value={`R$ ${totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} trend="" icon="money_off" color="expense" />
+        <ReportSummary title="Saldo Final" value={`R$ ${annualBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} trend="" icon="account_balance_wallet" color={annualBalance >= 0 ? "success" : "red"} />
+        <ReportSummary title="Você investiu" value={`R$ ${totalInvested.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} trend="" icon="trending_up" color="blue" />
       </div>
 
       {/* Charts Row */}

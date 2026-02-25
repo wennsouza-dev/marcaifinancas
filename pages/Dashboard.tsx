@@ -31,7 +31,8 @@ const Dashboard: React.FC = () => {
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<any>(null);
-  const [modalType, setModalType] = useState<'income' | 'expense'>('expense');
+  const [modalType, setModalType] = useState<'income' | 'expense' | 'investment'>('expense');
+  const [modalAudioText, setModalAudioText] = useState<string | undefined>(undefined);
   const [filteredForAnalysis, setFilteredForAnalysis] = useState<any[]>([]);
 
   // Filtering state
@@ -137,8 +138,9 @@ const Dashboard: React.FC = () => {
     fetchDashboardData();
   }, [user, selectedMonth, selectedYear]);
 
-  const openModal = (type: 'income' | 'expense') => {
+  const openModal = (type: 'income' | 'expense' | 'investment', audioText?: string) => {
     setModalType(type);
+    setModalAudioText(audioText);
     setIsModalOpen(true);
   };
 
@@ -323,26 +325,37 @@ const Dashboard: React.FC = () => {
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <button
           onClick={() => openModal('income')}
-          className="flex-1 h-12 sm:h-14 bg-primary text-white rounded-xl shadow-lg shadow-primary/20 font-bold hover:bg-primary-hover transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm sm:text-base"
+          className="flex-1 h-12 sm:h-14 bg-primary text-white rounded-xl shadow-lg shadow-primary/20 font-bold hover:bg-primary-hover transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm sm:text-base cursor-pointer z-10"
         >
           <span className="material-symbols-outlined text-xl">add_circle</span>
           Nova Receita
         </button>
         <button
           onClick={() => openModal('expense')}
-          className="flex-1 h-12 sm:h-14 bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 text-expense rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-white/5 transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm sm:text-base"
+          className="flex-1 h-12 sm:h-14 bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 text-expense rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-white/5 transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm sm:text-base cursor-pointer z-10"
         >
           <span className="material-symbols-outlined text-xl">remove_circle</span>
           Nova Despesa
+        </button>
+        <button
+          onClick={() => openModal('investment')}
+          className="flex-1 h-12 sm:h-14 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/20 font-bold hover:bg-blue-700 transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm sm:text-base cursor-pointer z-10"
+        >
+          <span className="material-symbols-outlined text-xl">trending_up</span>
+          Novo Investimento
         </button>
       </div>
 
       {
         isModalOpen && (
           <NewExpenseModal
-            onClose={() => setIsModalOpen(false)}
+            onClose={() => {
+              setIsModalOpen(false);
+              setModalAudioText(undefined);
+            }}
             type={modalType}
             onSuccess={fetchDashboardData}
+            initialAudioText={modalAudioText}
           />
         )
       }
@@ -373,7 +386,11 @@ const Dashboard: React.FC = () => {
           />
         )
       }
-      <FinancialAdvisorWidget transactions={filteredForAnalysis} stats={stats} />
+      <FinancialAdvisorWidget
+        transactions={filteredForAnalysis}
+        stats={stats}
+        onAddTransaction={(type, text) => openModal(type, text)}
+      />
     </div>
   );
 };

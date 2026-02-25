@@ -8,6 +8,11 @@ export interface ChatMessage {
     role: 'user' | 'assistant';
     text: string;
     timestamp: Date;
+    action?: {
+        type: 'ADD_TRANSACTION';
+        transactionType: 'income' | 'expense';
+        text: string;
+    }
 }
 
 export const useFinancialAdvisor = (transactions: any[], stats: any) => {
@@ -52,11 +57,12 @@ export const useFinancialAdvisor = (transactions: any[], stats: any) => {
             2. Analise os dados acima para responder. Se o usuário perguntar se pode gastar, verifique o saldo.
             3. Dê dicas práticas de economia se perceber gastos supérfluos.
             4. Se a resposta envolver calculos, explique o raciocínio.
+            5. SE O USUÁRIO PEDIR PARA ADICIONAR, REGISTRAR OU LANÇAR UMA DESPESA OU RECEITA, no final da mensagem inclua EXATAMENTE o seguinte JSON (e não coloque mais nada depois dele):
+            {"action": "ADD_TRANSACTION", "type": "expense" ou "income", "text": "o texto exato que o usuário disse sobre a transação"}
             
             PERGUNTA DO USUÁRIO: "${userText}"
             `;
-
-            const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-001", "gemini-pro", "gemini-1.0-pro"];
+            const modelsToTry = ["gemini-2.0-flash", "gemini-flash-latest", "gemini-2.5-flash", "gemini-1.5-flash", "gemini-pro"];
             const genAI = new GoogleGenerativeAI(API_KEY.trim());
 
             let text = "";
@@ -82,11 +88,32 @@ export const useFinancialAdvisor = (transactions: any[], stats: any) => {
                 throw firstError;
             }
 
+            // Extract JSON action if present
+            let actionData;
+            let finalBotText = text;
+            const actionMatch = finalBotText.match(/\{[\s\S]*"action"\s*:\s*"ADD_TRANSACTION"[\s\S]*\}/);
+
+            if (actionMatch) {
+                try {
+                    const parsedAction = JSON.parse(actionMatch[0]);
+                    actionData = {
+                        type: 'ADD_TRANSACTION' as const,
+                        transactionType: parsedAction.type,
+                        text: parsedAction.text
+                    };
+                    // Remove the JSON string from the bot message
+                    finalBotText = finalBotText.replace(actionMatch[0], '').trim();
+                } catch (e) {
+                    console.error("Failed to parse action JSON:", e);
+                }
+            }
+
             const botMsg: ChatMessage = {
                 id: crypto.randomUUID(),
                 role: 'assistant',
-                text: text,
-                timestamp: new Date()
+                text: finalBotText,
+                timestamp: new Date(),
+                action: actionData
             };
             setMessages(prev => [...prev, botMsg]);
 

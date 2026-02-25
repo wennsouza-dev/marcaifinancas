@@ -1,23 +1,77 @@
 import React, { useState, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
-import Tesseract from 'tesseract.js';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
+import { parseTransactionFromAudio } from '../services/geminiService';
 
 interface Props {
   onClose: () => void;
-  type?: 'income' | 'expense';
+  type?: 'income' | 'expense' | 'investment';
   onSuccess?: () => void;
+  initialAudioText?: string;
 }
 
-const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess }) => {
+const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess, initialAudioText }) => {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [category, setCategory] = useState(type === 'expense' ? 'Alimentação' : 'Salário');
+  const [category, setCategory] = useState(type === 'expense' ? 'Alimentação' : type === 'investment' ? 'Investimentos' : 'Salário');
   const [loading, setLoading] = useState(false);
-  const [processingImage, setProcessingImage] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [processingAudio, setProcessingAudio] = useState(false);
   const { user } = useAuth();
+
+  const handleAudioResult = async (text: string) => {
+    if (!text.trim()) return;
+    setProcessingAudio(true);
+    try {
+      console.log('Audio Result Start - Received text:', text);
+      const parsed = await parseTransactionFromAudio(text);
+      console.log('Audio Result Parsed:', parsed);
+
+      if (parsed) {
+        setDescription(parsed.description);
+        setAmount(parsed.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+
+        // Only update category if it matches the current modal type to avoid UX confusion
+        if (type === 'expense' && ["Alimentação", "Transporte", "Lazer", "Moradia", "Eletrônicos", "Saúde", "Outros"].includes(parsed.category)) {
+          setCategory(parsed.category);
+        } else if (type === 'income' && ["Salário", "Freelance", "Investimentos", "Presentes", "Outros"].includes(parsed.category)) {
+          setCategory(parsed.category);
+        } else {
+          setCategory('Outros');
+        }
+
+        if (parsed.isInstallment) {
+          setIsInstallment(true);
+          setIsFixed(false);
+          setCurrentInstallment(1);
+          // If they say "in 3 installments", the remaining is 2 (since current is 1)
+          // If the parser returns 3, we set remaining to 2.
+          // We ensure it's at least 1 remaining if it's an installment, or 0 if parsed count is 1 or less
+          setRemainingInstallments(Math.max(0, parsed.installmentsCount - 1));
+        } else {
+          setIsInstallment(false);
+        }
+      } else {
+        alert('Não foi possível extrair os dados do áudio. Tente falar novamente.');
+      }
+    } catch (err) {
+      console.error("Audio processing error", err);
+      alert('Erro ao processar o áudio.');
+    } finally {
+      setProcessingAudio(false);
+    }
+  };
+
+  const { isRecording, startRecording, stopRecording, hasSupport } = useSpeechRecognition(handleAudioResult);
+
+  // Automatically start processing if initialAudioText is provided
+  React.useEffect(() => {
+    if (initialAudioText) {
+      handleAudioResult(initialAudioText);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialAudioText]);
 
   // Installment logic
   const [isInstallment, setIsInstallment] = useState(false);
@@ -25,74 +79,6 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
   const [currentInstallment, setCurrentInstallment] = useState(1);
   const [remainingInstallments, setRemainingInstallments] = useState(0);
   const [refMonthShift, setRefMonthShift] = useState(0); // -1: Previous, 0: Current, 1: Next
-
-  const processImage = async (file: File) => {
-    setProcessingImage(true);
-    try {
-      const result = await Tesseract.recognize(file, 'por', {
-        logger: (m) => console.log(m),
-      });
-
-      const text = result.data.text;
-      console.log('OCR Result:', text);
-
-      // Regex para encontrar valores monetários (ex: 50,00, R$ 50,00)
-      const valueRegex = /(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*,\d{2})/g;
-      const valuesFound = text.match(valueRegex);
-
-      // Regex para encontrar datas (ex: 20/12/2024, 2024-12-20)
-      const dateRegex = /(\d{2}\/\d{2}\/\d{4})|(\d{4}-\d{2}-\d{2})/g;
-      const datesFound = text.match(dateRegex);
-
-      if (valuesFound && valuesFound.length > 0) {
-        // Pega o maior valor encontrado, assumindo que é o total
-        // Remove R$, pontos e substitui vírgula por ponto para comparar
-        const cleanValues = valuesFound.map(v => {
-          const raw = v.replace('R$', '').trim().replace(/\./g, '').replace(',', '.');
-          return parseFloat(raw);
-        });
-        const maxVal = Math.max(...cleanValues);
-        setAmount(maxVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-      }
-
-      if (datesFound && datesFound.length > 0) {
-        // Tenta pegar a primeira data encontrada
-        const rawDate = datesFound[0];
-        let isoDate = '';
-        if (rawDate.includes('/')) {
-          const parts = rawDate.split('/');
-          isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-        } else {
-          isoDate = rawDate;
-        }
-        // Validate date
-        if (!isNaN(new Date(isoDate).getTime())) {
-          setDate(isoDate);
-        }
-      }
-
-      // Tentativa simples de pegar descrição (primeira linha não vazia que não seja data/valor)
-      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      const possibleDesc = lines.find(l => l.length > 3 && !l.match(valueRegex) && !l.match(dateRegex));
-      if (possibleDesc) {
-        setDescription(possibleDesc.substring(0, 30)); // Limit length
-      }
-
-    } catch (err: any) {
-      console.error('OCR Error:', err);
-      alert('Erro ao processar imagem: ' + err.message);
-    } finally {
-      setProcessingImage(false);
-    }
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      processImage(e.target.files[0]);
-    }
-  };
-
-
   const handleSubmit = async () => {
     if (!description || !amount || !date || !user) return;
 
@@ -135,7 +121,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
             amount: numericAmount,
             date: installmentDate.toISOString().split('T')[0],
             category,
-            type,
+            type: type === 'investment' ? 'expense' : type,
             group_id: groupId,
             installment_number: actualInstallmentNumber,
             total_installments: totalInstallments,
@@ -157,7 +143,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
             amount: numericAmount, // Full amount for each month
             date: recurringDate.toISOString().split('T')[0],
             category,
-            type,
+            type: type === 'investment' ? 'expense' : type,
             group_id: fixedGroupId,
             installment_number: i + 1, // Needed for "This and Next" editing logic order
             total_installments: null, // Set to null so UI doesn't show "1/12" badge
@@ -171,7 +157,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
           amount: numericAmount,
           date: baseDate.toISOString().split('T')[0],
           category,
-          type,
+          type: type === 'investment' ? 'expense' : type,
           billing_date: refMonthShift !== 0 ? new Date(baseDate.getFullYear(), baseDate.getMonth() + refMonthShift, 1).toISOString().split('T')[0] : null
         });
       }
@@ -196,10 +182,10 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden border border-gray-100 transition-all">
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 flex-shrink-0">
           <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <span className={`material-symbols-outlined ${type === 'expense' ? 'text-expense' : 'text-primary'}`}>
-              {type === 'expense' ? 'remove_circle' : 'add_circle'}
+            <span className={`material-symbols-outlined ${type === 'expense' ? 'text-expense' : type === 'investment' ? 'text-blue-600' : 'text-primary'}`}>
+              {type === 'expense' ? 'remove_circle' : type === 'investment' ? 'trending_up' : 'add_circle'}
             </span>
-            {type === 'expense' ? 'Nova Despesa' : 'Nova Receita'}
+            {type === 'expense' ? 'Nova Despesa' : type === 'investment' ? 'Novo Investimento' : 'Nova Receita'}
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <span className="material-symbols-outlined">close</span>
@@ -207,34 +193,40 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
         </div>
 
         <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
-          {/* OCR Button */}
-          <div className="flex flex-col items-center justify-center mb-4 gap-2">
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              ref={fileInputRef}
-              onChange={handleImageUpload}
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={processingImage}
-              className="flex flex-col items-center justify-center w-full py-4 border-2 border-dashed border-gray-300 rounded-lg hover:bg-gray-50 transition-colors gap-2 text-gray-500 hover:text-primary"
-            >
-              {processingImage ? (
-                <>
-                  <span className="material-symbols-outlined animate-spin text-2xl">progress_activity</span>
-                  <span className="text-xs font-medium">Lendo imagem... Aguarde</span>
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-2xl">add_a_photo</span>
-                  <span className="text-xs font-medium">Escanear Recibo Individual / Foto (Beta)</span>
-                </>
-              )}
-            </button>
+          {/* Smart Input Actions */}
+          <div className="flex gap-2 mb-4">
+
+            {hasSupport && (
+              <div className="flex-1 flex flex-col gap-2">
+                <button
+                  onClick={isRecording ? stopRecording : startRecording}
+                  disabled={processingAudio}
+                  className={`flex flex-col items-center justify-center w-full py-4 border-2 border-dashed rounded-lg transition-colors gap-2 disabled:opacity-50 ${isRecording ? 'border-red-300 bg-red-50 text-red-600 hover:bg-red-100' : 'border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-primary'}`}
+                >
+                  {processingAudio ? (
+                    <>
+                      <span className="material-symbols-outlined animate-spin text-2xl">progress_activity</span>
+                      <span className="text-[10px] font-medium text-center px-2">Processando Áudio...</span>
+                    </>
+                  ) : isRecording ? (
+                    <>
+                      <span className="material-symbols-outlined text-2xl animate-pulse">mic</span>
+                      <span className="text-[10px] font-medium text-center px-2">Gravando... (Clique p/ Parar)</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-2xl">mic</span>
+                      <span className="text-[10px] font-medium text-center px-2">Falar Transação (Ex: Gastei 50 no pão)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-center mb-4">
             <p className="text-[10px] text-gray-400">
-              Para ler faturas completas com vários itens, <a href="/#/smart-import" className="text-primary hover:underline font-bold" onClick={onClose}>use a Importação Inteligente</a>.
+              Lembre-se de falar de forma clara para melhor precisão.
             </p>
           </div>
 
@@ -245,7 +237,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 placeholder-gray-400"
-                placeholder={type === 'expense' ? "Ex: Compra de Notebook" : "Ex: Salário Mensal"}
+                placeholder={type === 'expense' ? "Ex: Compra de Notebook" : type === 'investment' ? "Ex: CDB, Tesouro Direto" : "Ex: Salário Mensal"}
                 type="text"
               />
             </div>
