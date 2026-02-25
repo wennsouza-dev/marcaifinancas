@@ -17,6 +17,7 @@ const Layout: React.FC = () => {
     { label: 'Transações', path: '/transactions', icon: 'receipt_long' },
     { label: 'Dividir Gastos', path: '/split', icon: 'call_split' },
     { label: 'Relatórios', path: '/reports', icon: 'pie_chart' },
+    { label: 'Investimentos', path: '/investments', icon: 'trending_up' },
     { label: 'Configurações', path: '/settings', icon: 'settings' },
   ];
 

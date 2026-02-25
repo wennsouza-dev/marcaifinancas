@@ -8,6 +8,7 @@ import Accounting from './pages/Accounting';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import SplitExpenses from './pages/SplitExpenses';
+import Investments from './pages/Investments';
 import Layout from './components/Layout';
 import Auth from './pages/Auth';
 import Admin from './pages/Admin';
@@ -93,6 +94,7 @@ const App: React.FC = () => {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/reports" element={<Reports />} />
+              <Route path="/investments" element={<Investments />} />
               <Route path="/split" element={<SplitExpenses />} />
               <Route path="/settings" element={<Settings />} />
               {/* Default redirect if user hits root authorized */}
