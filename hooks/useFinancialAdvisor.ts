@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const API_KEY = (import.meta.env.VITE_GEMINI_API_KEY || '').trim();
 const genAI = new GoogleGenerativeAI(API_KEY);
-const MODELS_TO_TRY = ["gemini-2.0-flash", "gemini-2.0-flash-lite-preview-02-05", "gemini-1.5-pro", "gemini-1.5-flash"];
+const MODELS_TO_TRY = ["gemini-1.5-flash-8b", "gemini-1.5-flash", "gemini-2.0-flash"];
 
 export interface ChatMessage {
     id: string;
@@ -132,7 +132,9 @@ export const useFinancialAdvisor = (transactions: any[], stats: any, onActionRec
             let userMessage = "Desculpe, tive um problema de conexão com o cérebro (API). Tente novamente mais tarde.";
 
             if (error.message?.includes('API key not valid') || error.message?.includes('API_KEY_INVALID')) {
-                userMessage = "A chave da API do Gemini parece ser inválida. Por favor, verifique se a VITE_GEMINI_API_KEY no arquivo .env está correta.";
+                userMessage = "A chave da API do Gemini parece ser inválida. Verifique o seu arquivo .env.";
+            } else if (error.message?.includes('quota') || error.message?.includes('429')) {
+                userMessage = "Sua cota do Gemini foi excedida (ou o projeto está sem limite). Por favor, gere uma NOVA chave no Google AI Studio (aistudio.google.com) e cole no seu .env.";
             }
 
             const errorMsg: ChatMessage = {
