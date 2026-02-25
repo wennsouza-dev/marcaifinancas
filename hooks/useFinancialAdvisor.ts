@@ -1,5 +1,9 @@
 import { useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const API_KEY = (import.meta.env.VITE_GEMINI_API_KEY || '').trim();
+const genAI = new GoogleGenerativeAI(API_KEY);
+const MODELS_TO_TRY = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-2.0-flash"];
 
 export interface ChatMessage {
     id: string;
@@ -17,11 +21,13 @@ export const useFinancialAdvisor = (transactions: any[], stats: any, onActionRec
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [loading, setLoading] = useState(false);
 
-    // We only need the text and role for the Gemini API history
-    const [chatHistory, setChatHistory] = useState<{ role: string, parts: { text: string }[] }[]>([]);
+    // Format expected by Gemini API: role can be 'user' or 'model'
+    const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'model', parts: { text: string }[] }[]>([]);
 
     const sendMessage = async (text: string) => {
         try {
+            if (!API_KEY) throw new Error('Chave Gemini não configurada.');
+
             const userMsg: ChatMessage = {
                 id: Date.now().toString(),
                 role: 'user',
@@ -32,42 +38,77 @@ export const useFinancialAdvisor = (transactions: any[], stats: any, onActionRec
             setMessages(prev => [...prev, userMsg]);
             setLoading(true);
 
-            // Fetch from edge function instead of local SDK
-            const { data, error } = await supabase.functions.invoke('analyze-finances', {
-                body: {
-                    history: chatHistory,
-                    message: text,
-                    transactions,
-                    stats
+            const systemInstruction = `
+                Você é o MarcAI, um consultor financeiro inteligente da plataforma "MarcAI Finanças".
+                Sempre responda em português do Brasil de forma concisa, educada e direta.
+                Você pode ajudar o usuário analisando suas transações e dados de resumo (Estatísticas do mês).
+                
+                Se o usuário quiser *adicionar* ou *registrar* uma transação de entrada ou saída no texto, retorne APENAS um JSON estrito no seguinte formato para que o sistema execute a ação:
+                \`\`\`json
+                {
+                  "action": "ADD_TRANSACTION",
+                  "transactionType": "expense" ou "income",
+                  "text": "frase extraída que descreve a transação"
                 }
-            });
+                \`\`\`
 
-            if (error) throw error;
-            if (data.error) throw new Error(data.error);
+                Se o usuário estiver apenas fazendo uma pergunta (ex: "quanto eu gastei de comida?"), responda normalmente em texto plano humanizado, analisando os dados:
+                Estatísticas do Mês Atual: 
+                Receitas (Total): R$ ${stats.income}
+                Despesas (Total): R$ ${stats.expenses}
+                Saldo Atual: R$ ${stats.balance}
 
-            const responseText = data.reply;
+                Transações recentes:
+                ${JSON.stringify(transactions.slice(0, 15))}
+            `;
+
+            let success = false;
+            let responseText = "";
+            let firstError;
+
+            for (const modelName of MODELS_TO_TRY) {
+                try {
+                    const model = genAI.getGenerativeModel({
+                        model: modelName,
+                        systemInstruction: systemInstruction
+                    });
+
+                    const chat = model.startChat({
+                        history: chatHistory,
+                    });
+
+                    const result = await chat.sendMessage(text);
+                    const response = await result.response;
+                    responseText = response.text();
+                    success = true;
+                    break;
+                } catch (err: any) {
+                    console.warn(`Model ${modelName} failed:`, err.message);
+                    if (!firstError) firstError = err;
+                }
+            }
+
+            if (!success) throw firstError || new Error('Todos os modelos falharam');
 
             // Optional: Parse JSON if the AI decided to return an action
             let actionText = responseText;
             let actionContent = null;
 
             try {
-                // simple heuristic to see if it's a JSON block
                 const cleaned = responseText.trim();
                 const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
                 if (jsonMatch) {
                     const parsed = JSON.parse(jsonMatch[0]);
                     if (parsed.action === 'ADD_TRANSACTION') {
                         actionContent = parsed;
-                        actionText = "Claro! Posso registrar isso para você. Confirme a ação no botão abaixo.";
-                        // Automatically trigger actions
+                        actionText = "Claro! Posso registrar isso para você. Abrirei o formulário agora.";
                         if (onActionReceived) {
                             onActionReceived(parsed.transactionType, parsed.text);
                         }
                     }
                 }
             } catch (e) {
-                // Ignore parse errors, just regular text
+                // Ignore parse errors
             }
 
             const aiMsg: ChatMessage = {
@@ -80,19 +121,24 @@ export const useFinancialAdvisor = (transactions: any[], stats: any, onActionRec
 
             setMessages(prev => [...prev, aiMsg]);
 
-            // update history
             setChatHistory(prev => [
                 ...prev,
                 { role: 'user', parts: [{ text }] },
                 { role: 'model', parts: [{ text: responseText }] }
             ]);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Advisor Error:', error);
+            let userMessage = "Desculpe, tive um problema de conexão com o cérebro (API). Tente novamente mais tarde.";
+
+            if (error.message?.includes('API key not valid') || error.message?.includes('API_KEY_INVALID')) {
+                userMessage = "A chave da API do Gemini parece ser inválida. Por favor, verifique se a VITE_GEMINI_API_KEY no arquivo .env está correta.";
+            }
+
             const errorMsg: ChatMessage = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                text: "Desculpe, tive um problema de conexão com o cérebro (API). Tente novamente mais tarde.",
+                text: userMessage,
                 timestamp: new Date()
             };
             setMessages(prev => [...prev, errorMsg]);
