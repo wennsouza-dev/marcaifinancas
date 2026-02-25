@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const API_KEY = (import.meta.env.VITE_GEMINI_API_KEY || '').trim();
 const genAI = new GoogleGenerativeAI(API_KEY);
-const MODELS_TO_TRY = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-2.0-flash"];
+const MODELS_TO_TRY = ["gemini-2.0-flash", "gemini-2.0-flash-lite-preview-02-05", "gemini-1.5-pro", "gemini-1.5-flash"];
 
 export interface ChatMessage {
     id: string;

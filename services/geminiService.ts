@@ -12,7 +12,7 @@ export interface ParsedTransaction {
     installmentsCount: number;
 }
 
-const MODELS_TO_TRY = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-2.0-flash"];
+const MODELS_TO_TRY = ["gemini-2.0-flash", "gemini-2.0-flash-lite-preview-02-05", "gemini-1.5-pro", "gemini-1.5-flash"];
 
 export const parseTransactionFromAudio = async (text: string): Promise<{ data: ParsedTransaction | null, error?: string, rawTranscript?: string }> => {
     try {
