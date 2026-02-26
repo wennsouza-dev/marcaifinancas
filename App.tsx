@@ -1,19 +1,26 @@
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 
-import Dashboard from './pages/Dashboard';
-import Transactions from './pages/Transactions';
-import Accounting from './pages/Accounting';
-import Reports from './pages/Reports';
-import Settings from './pages/Settings';
-import SplitExpenses from './pages/SplitExpenses';
-import Investments from './pages/Investments';
-import Layout from './components/Layout';
-import Auth from './pages/Auth';
-import Admin from './pages/Admin';
-import Landing from './pages/Landing';
+// Code splitting: pages are loaded on-demand (only when navigated to)
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Transactions = React.lazy(() => import('./pages/Transactions'));
+const Accounting = React.lazy(() => import('./pages/Accounting'));
+const Reports = React.lazy(() => import('./pages/Reports'));
+const Settings = React.lazy(() => import('./pages/Settings'));
+const SplitExpenses = React.lazy(() => import('./pages/SplitExpenses'));
+const Investments = React.lazy(() => import('./pages/Investments'));
+const Layout = React.lazy(() => import('./components/Layout'));
+const Auth = React.lazy(() => import('./pages/Auth'));
+const Admin = React.lazy(() => import('./pages/Admin'));
+const Landing = React.lazy(() => import('./pages/Landing'));
 import { AuthProvider, useAuth } from './context/AuthContext';
+
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+  </div>
+);
 
 
 const ProtectedRoute = () => {
@@ -83,29 +90,26 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <HashRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/auth" element={<Auth />} />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/auth" element={<Auth />} />
 
-          <Route element={<ProtectedRoute />}>
-            <Route path="/admin" element={<Admin />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/admin" element={<Admin />} />
 
-            <Route element={<Layout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/transactions" element={<Transactions />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/investments" element={<Investments />} />
-              <Route path="/split" element={<SplitExpenses />} />
-              <Route path="/settings" element={<Settings />} />
-              {/* Default redirect if user hits root authorized */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route element={<Layout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/transactions" element={<Transactions />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/investments" element={<Investments />} />
+                <Route path="/split" element={<SplitExpenses />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              </Route>
             </Route>
-            {/* Redirect legacy / path if user is logged in? 
-            For now, let's keep it simple. If they go to /, they see landing. 
-            Auth.tsx should redirect to /dashboard. 
-            */}
-          </Route>
-        </Routes>
+          </Routes>
+        </Suspense>
       </HashRouter>
     </AuthProvider>
   );
