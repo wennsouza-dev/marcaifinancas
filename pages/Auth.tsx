@@ -11,8 +11,19 @@ const Auth: React.FC = () => {
     const [isLogin, setIsLogin] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [message, setMessage] = useState<string | null>(null)
+    const [rememberMe, setRememberMe] = useState(false)
     const navigate = useNavigate()
     const { session } = useAuth()
+
+    React.useEffect(() => {
+        const savedEmail = localStorage.getItem('marcai_saved_email')
+        const savedPassword = localStorage.getItem('marcai_saved_password')
+        if (savedEmail && savedPassword) {
+            setEmail(savedEmail)
+            setPassword(savedPassword)
+            setRememberMe(true)
+        }
+    }, [])
 
     React.useEffect(() => {
         if (session) {
@@ -33,6 +44,15 @@ const Auth: React.FC = () => {
                     password,
                 })
                 if (error) throw error
+
+                if (rememberMe) {
+                    localStorage.setItem('marcai_saved_email', email)
+                    localStorage.setItem('marcai_saved_password', password)
+                } else {
+                    localStorage.removeItem('marcai_saved_email')
+                    localStorage.removeItem('marcai_saved_password')
+                }
+
                 navigate('/dashboard')
             } else {
                 const { error } = await supabase.auth.signUp({
@@ -99,6 +119,22 @@ const Auth: React.FC = () => {
                             onChange={(e) => setPassword(e.target.value)}
                         />
                     </div>
+
+                    {isLogin && (
+                        <div className="flex items-center">
+                            <input
+                                id="remember_me"
+                                name="remember_me"
+                                type="checkbox"
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.target.checked)}
+                                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded cursor-pointer"
+                            />
+                            <label htmlFor="remember_me" className="ml-2 block text-sm text-gray-900 cursor-pointer">
+                                Manter conectado
+                            </label>
+                        </div>
+                    )}
 
                     <button
                         type="submit"

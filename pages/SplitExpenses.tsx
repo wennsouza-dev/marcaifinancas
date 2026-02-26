@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import AddFriendModal from '../components/AddFriendModal';
 import NewSplitModal from '../components/NewSplitModal';
 import jsPDF from 'jspdf';
@@ -8,6 +9,7 @@ import autoTable from 'jspdf-autotable';
 
 const SplitExpenses: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [showNewSplit, setShowNewSplit] = useState(false);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
@@ -271,18 +273,33 @@ const SplitExpenses: React.FC = () => {
           </div>
           <div className="flex gap-3">
             <button
+              onClick={() => {
+                if (user?.email) {
+                  localStorage.setItem('shared_friend_email', user.email);
+                  navigate('/shared-dashboard');
+                }
+              }}
+              className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors shadow-sm text-indigo-700 dark:text-indigo-400 text-sm font-bold"
+              title="Acessar gastos que lançaram com o seu email"
+            >
+              <span className="material-symbols-outlined text-[20px]">assignment_ind</span>
+              <span className="hidden sm:inline">Meus Rateios (Como Amigo)</span>
+              <span className="sm:hidden">Meus Rateios</span>
+            </button>
+            <button
               onClick={() => setShowAddFriend(true)}
               className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors shadow-sm text-gray-700 dark:text-gray-200 text-sm font-bold"
             >
               <span className="material-symbols-outlined text-[20px]">person_add</span>
-              <span>Incluir Pessoa</span>
+              <span className="hidden sm:inline">Incluir Pessoa</span>
             </button>
             <button
               onClick={() => setShowNewSplit(true)}
               className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary hover:bg-primary-hover text-white transition-colors shadow-md shadow-primary/20 text-sm font-bold"
             >
               <span className="material-symbols-outlined text-[20px]">receipt_long</span>
-              <span>Novo Rateio</span>
+              <span className="hidden sm:inline">Novo Rateio</span>
+              <span className="sm:hidden">Novo</span>
             </button>
           </div>
         </div>
