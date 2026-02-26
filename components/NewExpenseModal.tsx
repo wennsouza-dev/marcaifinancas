@@ -16,6 +16,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [category, setCategory] = useState(type === 'expense' ? 'Alimentação' : type === 'investment' ? 'Investimentos' : 'Salário');
+  const [paymentMethod, setPaymentMethod] = useState('PIX');
   const [loading, setLoading] = useState(false);
   const [processingAudio, setProcessingAudio] = useState(false);
   const { user } = useAuth();
@@ -121,6 +122,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
             amount: numericAmount,
             date: installmentDate.toISOString().split('T')[0],
             category,
+            payment_method: paymentMethod,
             type: type === 'investment' ? 'expense' : type,
             group_id: groupId,
             installment_number: actualInstallmentNumber,
@@ -143,6 +145,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
             amount: numericAmount, // Full amount for each month
             date: recurringDate.toISOString().split('T')[0],
             category,
+            payment_method: paymentMethod,
             type: type === 'investment' ? 'expense' : type,
             group_id: fixedGroupId,
             installment_number: i + 1, // Needed for "This and Next" editing logic order
@@ -157,6 +160,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
           amount: numericAmount,
           date: baseDate.toISOString().split('T')[0],
           category,
+          payment_method: paymentMethod,
           type: type === 'investment' ? 'expense' : type,
           billing_date: refMonthShift !== 0 ? new Date(baseDate.getFullYear(), baseDate.getMonth() + refMonthShift, 1).toISOString().split('T')[0] : null
         });
@@ -261,7 +265,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
                 type="date"
               />
             </div>
-            <div className="col-span-2">
+            <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Categoria</label>
               <select
                 value={category}
@@ -287,6 +291,22 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
                     <option>Outros</option>
                   </>
                 )}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">
+                {type === 'expense' ? 'Meio de Pagamento' : 'Meio de Receb.'}
+              </label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/50 appearance-none"
+              >
+                <option value="PIX">PIX</option>
+                <option value="Cartão de Crédito">Cartão de Crédito</option>
+                <option value="Cartão de Débito">Cartão de Débito</option>
+                <option value="Transferência">Transferência</option>
+                <option value="Dinheiro">Dinheiro</option>
               </select>
             </div>
           </div>

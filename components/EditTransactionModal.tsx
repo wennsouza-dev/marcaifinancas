@@ -13,6 +13,7 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
     const [amount, setAmount] = useState(transaction.amount?.toString().replace('.', ',') || '');
     const [date, setDate] = useState(transaction.date || '');
     const [category, setCategory] = useState(transaction.category || '');
+    const [paymentMethod, setPaymentMethod] = useState(transaction.payment_method || 'PIX');
     const [refMonthShift, setRefMonthShift] = useState(0);
     const [loading, setLoading] = useState(false);
     const { user } = useAuth();
@@ -46,6 +47,7 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                 description,
                 amount: numericAmount,
                 category,
+                payment_method: paymentMethod,
                 // Do not update date for 'all' mode as it would overwrite future recurring dates
                 date: editMode === 'only' ? formattedDate : undefined
             };
@@ -86,6 +88,7 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                             description: `${description} (${actualNumber}/${totalInstallments})`,
                             amount: numericAmount,
                             category,
+                            payment_method: paymentMethod,
                             type: transaction.type,
                             group_id: newGroupId,
                             installment_number: actualNumber,
@@ -144,6 +147,7 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                             amount: numericAmount,
                             date: recurringDate.toISOString().split('T')[0],
                             category,
+                            payment_method: paymentMethod,
                             type: transaction.type, // Ensure type is preserved
                             group_id: newGroupId,
                             installment_number: i + 1,
@@ -269,7 +273,7 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                                 disabled={editMode === 'all'}
                             />
                         </div>
-                        <div className="col-span-2">
+                        <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Categoria</label>
                             <select
                                 value={category}
@@ -286,6 +290,20 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                                 <option>Freelance</option>
                                 <option>Investimentos</option>
                                 <option>Outros</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Meio</label>
+                            <select
+                                value={paymentMethod}
+                                onChange={(e) => setPaymentMethod(e.target.value)}
+                                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/50 appearance-none"
+                            >
+                                <option value="PIX">PIX</option>
+                                <option value="Cartão de Crédito">Cartão de Crédito</option>
+                                <option value="Cartão de Débito">Cartão de Débito</option>
+                                <option value="Transferência">Transferência</option>
+                                <option value="Dinheiro">Dinheiro</option>
                             </select>
                         </div>
                         <div className="col-span-2">

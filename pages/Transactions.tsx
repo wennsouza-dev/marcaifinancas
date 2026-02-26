@@ -18,6 +18,7 @@ const Transactions: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('Todas');
   const [filterType, setFilterType] = useState('todos'); // todos, income, expense
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState('Todos');
 
   // Filtering state
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -90,7 +91,8 @@ const Transactions: React.FC = () => {
     const matchesSearch = t.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'Todas' || t.category === filterCategory;
     const matchesType = filterType === 'todos' || t.type === filterType;
-    return matchesMonth && matchesSearch && matchesCategory && matchesType;
+    const matchesPaymentMethod = filterPaymentMethod === 'Todos' || t.payment_method === filterPaymentMethod;
+    return matchesMonth && matchesSearch && matchesCategory && matchesType && matchesPaymentMethod;
   });
 
   const totalBalance = filteredTransactions.reduce((acc, curr) => {
@@ -250,6 +252,19 @@ const Transactions: React.FC = () => {
             <option value="Eletrônicos">Eletrônicos</option>
             <option value="Outros">Outros</option>
           </select>
+
+          <select
+            value={filterPaymentMethod}
+            onChange={(e) => setFilterPaymentMethod(e.target.value)}
+            className="px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border-none rounded-xl focus:ring-0 text-sm font-medium text-gray-700 cursor-pointer min-w-[140px]"
+          >
+            <option value="Todos">Todos Meios</option>
+            <option value="PIX">PIX</option>
+            <option value="Cartão de Crédito">Cartão de Crédito</option>
+            <option value="Cartão de Débito">Cartão de Débito</option>
+            <option value="Transferência">Transferência</option>
+            <option value="Dinheiro">Dinheiro</option>
+          </select>
         </div>
 
         <div className="relative w-full md:w-80">
@@ -313,12 +328,22 @@ const Transactions: React.FC = () => {
                       {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}
                     </span>
                     <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${t.category === 'Alimentação' ? 'bg-orange-100 text-orange-700' :
-                        t.category === 'Transporte' ? 'bg-purple-100 text-purple-700' :
-                          t.category === 'Lazer' ? 'bg-cyan-100 text-cyan-700' :
-                            'bg-gray-100 text-gray-600'
+                      t.category === 'Transporte' ? 'bg-purple-100 text-purple-700' :
+                        t.category === 'Lazer' ? 'bg-cyan-100 text-cyan-700' :
+                          'bg-gray-100 text-gray-600'
                       }`}>
                       {t.category}
                     </span>
+                    {t.payment_method && (
+                      <span className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]">
+                          {t.payment_method === 'PIX' ? 'qr_code_scanner' :
+                            t.payment_method.includes('Cartão') ? 'credit_card' :
+                              t.payment_method === 'Dinheiro' ? 'payments' : 'account_balance'}
+                        </span>
+                        {t.payment_method}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
