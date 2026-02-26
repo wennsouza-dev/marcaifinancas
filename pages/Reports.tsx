@@ -50,7 +50,7 @@ const Reports: React.FC = () => {
       return new Date(refDate + 'T00:00:00').getMonth() === i;
     });
     const income = monthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + Number(t.amount), 0);
-    const expense = monthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + Number(t.amount), 0);
+    const expense = monthTransactions.filter(t => t.type === 'expense' && t.category !== 'Investimentos' && t.category !== 'Investimento').reduce((acc, t) => acc + Number(t.amount), 0);
     return { month: i, income, expense };
   });
 
@@ -58,7 +58,7 @@ const Reports: React.FC = () => {
 
   // Category Breakdown
   const categories: Record<string, number> = {};
-  yearTransactions.filter(t => t.type === 'expense').forEach(t => {
+  yearTransactions.filter(t => t.type === 'expense' && t.category !== 'Investimentos' && t.category !== 'Investimento').forEach(t => {
     categories[t.category] = (categories[t.category] || 0) + Number(t.amount);
   });
 
@@ -231,9 +231,9 @@ const Reports: React.FC = () => {
               ))}
             </div>
           </div>
-          <div className="flex items-center gap-6 mt-4 justify-center">
-            <LegendItem color="primary" text="Receitas" />
-            <LegendItem color="secondary/40" text="Despesas" />
+          <div className="flex items-center gap-6 mt-8 justify-center">
+            <LegendItem colorClass="bg-primary" text="Receitas" />
+            <LegendItem colorClass="bg-red-400" text="Despesas" />
           </div>
         </div>
 
@@ -369,16 +369,16 @@ const ReportSummary: React.FC<{ title: string, value: string, trend: string, ico
 };
 
 const ReportBar: React.FC<{ primaryH: string, secondaryH: string, month: string, hideMobile?: boolean }> = ({ primaryH, secondaryH, month, hideMobile }) => (
-  <div className={`flex flex-col items-center gap-2 group w-full h-full justify-end ${hideMobile ? 'hidden sm:flex' : 'flex'}`}>
-    <div className="w-full max-w-[24px] rounded-t bg-primary group-hover:opacity-80 transition-opacity relative" style={{ height: primaryH }}></div>
-    <div className="w-full max-w-[24px] rounded-t bg-secondary/40 group-hover:opacity-80 transition-opacity" style={{ height: secondaryH }}></div>
-    <span className="text-xs font-medium text-text-secondary mt-2 absolute -bottom-1">{month}</span>
+  <div className={`relative flex items-end justify-center gap-1 group w-full h-full ${hideMobile ? 'hidden sm:flex' : 'flex'}`}>
+    <div className="w-full max-w-[14px] sm:max-w-[20px] rounded-t bg-primary group-hover:opacity-80 transition-opacity z-10" style={{ height: primaryH }}></div>
+    <div className="w-full max-w-[14px] sm:max-w-[20px] rounded-t bg-red-400 group-hover:opacity-80 transition-opacity z-10" style={{ height: secondaryH }}></div>
+    <span className="text-[10px] sm:text-xs font-medium text-text-secondary absolute -bottom-6 w-full text-center">{month}</span>
   </div>
 );
 
-const LegendItem: React.FC<{ color: string, text: string }> = ({ color, text }) => (
+const LegendItem: React.FC<{ colorClass: string, text: string }> = ({ colorClass, text }) => (
   <div className="flex items-center gap-2">
-    <span className={`w-3 h-3 rounded-full bg-${color}`}></span>
+    <span className={`w-3 h-3 rounded-full ${colorClass}`}></span>
     <span className="text-sm text-text-secondary">{text}</span>
   </div>
 );
