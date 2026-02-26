@@ -243,7 +243,7 @@ const SplitExpenses: React.FC = () => {
       body: activitiesToExport.map(act => [
         act.split_expenses?.description || 'Despesa',
         act.friends?.name || '-',
-        `R$ ${Number(act.amount_owed).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+        `R$ ${Number(act.amount_owed).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         act.split_expenses?.date ? new Date(act.split_expenses.date).toLocaleDateString('pt-BR') : '-',
         act.split_expenses?.billing_date ? new Date(act.split_expenses.billing_date + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : '-'
       ]),
@@ -305,9 +305,9 @@ const SplitExpenses: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <SplitCard title="Total a Receber" value={`R$ ${stats.toReceive.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} subtext={`Referente a ${months[selectedMonth]}`} icon="call_received" color="green" />
-          <SplitCard title="Total a Pagar" value={`R$ ${stats.toPay.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} subtext="Você deve" icon="call_made" color="orange" />
-          <BalanceSummary title="Balanço (Mês)" value={`+ R$ ${stats.totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} status="Positivo" />
+          <SplitCard title="Total a Receber" value={`R$ ${stats.toReceive.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} subtext={`Referente a ${months[selectedMonth]}`} icon="call_received" color="green" />
+          <SplitCard title="Total a Pagar" value={`R$ ${stats.toPay.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} subtext="Você deve" icon="call_made" color="orange" />
+          <BalanceSummary title="Balanço (Mês)" value={`+ R$ ${stats.totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} status="Positivo" />
         </div>
 
         {/* Filter Bar */}
@@ -361,7 +361,7 @@ const SplitExpenses: React.FC = () => {
                       key={act.id}
                       title={act.split_expenses?.description || 'Despesa'}
                       details={`Dividido com ${act.friends?.name}`}
-                      amount={`R$ ${Number(act.amount_owed).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                      amount={`R$ ${Number(act.amount_owed).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                       label="Você recebe"
                       icon="receipt_long"
                       color="blue"
@@ -422,7 +422,7 @@ const SplitExpenses: React.FC = () => {
                       key={idx}
                       name={fb.name}
                       details="Deve a você"
-                      amount={`R$ ${fb.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                      amount={`R$ ${fb.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                       initials={fb.name.substring(0, 2).toUpperCase()}
                       gradient="from-blue-400 to-blue-600"
                       onExport={() => handleExportPDF({ id: Object.keys(recentActivities.reduce((acc, act) => { if (act.friends?.name === fb.name) acc[act.friends.id] = true; return acc; }, {} as any))[0], name: fb.name })}
