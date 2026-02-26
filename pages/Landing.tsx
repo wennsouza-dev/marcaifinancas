@@ -47,7 +47,7 @@ const Landing: React.FC = () => {
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <button onClick={() => navigate('/auth')} className="text-sm font-semibold text-gray-600 hover:text-emerald-600 transition-colors">
+                            <button onClick={() => navigate('/auth')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-all shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/30">
                                 Entrar
                             </button>
                         </div>
