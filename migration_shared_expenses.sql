@@ -30,7 +30,7 @@ BEGIN
         se.total_installments,
         se.date,
         se.billing_date,
-        u.bussiness_name AS creator_name, -- Fetching the business/user name of the person who created the expense
+        u.name AS creator_name, -- Fetching the user name
         sp.amount_owed,
         sp.is_paid,
         sp.id AS participant_id
@@ -41,7 +41,7 @@ BEGIN
     INNER JOIN 
         public.friends f ON sp.friend_id = f.id
     INNER JOIN 
-        public.users u ON se.created_by = u.id -- Assuming 'users' table holds the app user info
+        public.user_profiles u ON se.created_by = u.id
     WHERE 
         f.email = friend_email AND
         f.email IS NOT NULL AND

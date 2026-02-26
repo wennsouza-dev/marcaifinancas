@@ -20,7 +20,16 @@ const SharedDashboard: React.FC = () => {
     const [expenses, setExpenses] = useState<SharedExpense[]>([]);
     const [loading, setLoading] = useState(true);
     const [friendEmail, setFriendEmail] = useState<string | null>(null);
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const navigate = useNavigate();
+
+    const months = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+
+    const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
 
     useEffect(() => {
         const storedEmail = localStorage.getItem('shared_friend_email');
@@ -53,8 +62,15 @@ const SharedDashboard: React.FC = () => {
         navigate('/shared-login');
     };
 
+    // Filter expenses by month and year
+    const filteredExpenses = expenses.filter(expense => {
+        const referenceDate = expense.billing_date || expense.date;
+        const d = new Date(referenceDate + (referenceDate.includes('T') ? '' : 'T00:00:00'));
+        return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+    });
+
     // Calculate Totals
-    const totalOwed = expenses
+    const totalOwed = filteredExpenses
         .filter(e => !e.is_paid)
         .reduce((sum, e) => sum + Number(e.amount_owed), 0);
 
@@ -100,6 +116,30 @@ const SharedDashboard: React.FC = () => {
                 </div>
             </div>
 
+            {/* Filter Bar */}
+            <div className="max-w-4xl mx-auto px-4 mb-6">
+                <div className="bg-white rounded-xl border border-gray-100 p-4 flex flex-wrap gap-4 items-center shadow-sm">
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-gray-400">calendar_month</span>
+                        <select
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                            className="bg-transparent border-none focus:ring-0 text-sm font-bold text-gray-800 cursor-pointer outline-none"
+                        >
+                            {months.map((m, i) => <option key={i} value={i}>{m}</option>)}
+                        </select>
+                    </div>
+                    <div className="h-4 w-px bg-gray-200 hidden sm:block"></div>
+                    <select
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(Number(e.target.value))}
+                        className="bg-transparent border-none focus:ring-0 text-sm font-bold text-gray-800 cursor-pointer outline-none"
+                    >
+                        {years.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                </div>
+            </div>
+
             {/* List */}
             <div className="max-w-4xl mx-auto px-4 space-y-4">
                 <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-4">
@@ -107,14 +147,14 @@ const SharedDashboard: React.FC = () => {
                     Histórico de Rateios
                 </h2>
 
-                {expenses.length === 0 ? (
+                {filteredExpenses.length === 0 ? (
                     <div className="bg-white p-8 rounded-2xl shadow-sm text-center border border-gray-100">
                         <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">sentiment_satisfied</span>
-                        <p className="text-gray-500 font-medium">Nenhum gasto compartilhado encontrado para o seu e-mail.</p>
+                        <p className="text-gray-500 font-medium">Nenhum gasto pendente neste período.</p>
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {expenses.map((expense) => (
+                        {filteredExpenses.map((expense) => (
                             <div
                                 key={expense.participant_id}
                                 className={`bg-white p-4 rounded-xl shadow-sm border-l-4 transition-all hover:shadow-md ${expense.is_paid ? 'border-green-500 opacity-75' : 'border-emerald-600'}`}
