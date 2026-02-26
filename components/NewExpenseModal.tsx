@@ -294,49 +294,51 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
           </div>
 
           <div className="pt-2 border-t border-dashed border-gray-200">
-            <div className="flex flex-col gap-3 mb-4">
-              {/* Installment Toggle */}
-              <div className="flex items-center gap-3">
-                <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                  <input
-                    checked={isInstallment}
-                    onChange={() => {
-                      setIsInstallment(!isInstallment);
-                      if (!isInstallment) setIsFixed(false); // Disable fixed if enabling installment
-                    }}
-                    className="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary peer transition-all duration-200 left-0"
-                    id="toggle-installment"
-                    type="checkbox"
-                  />
-                  <label className="block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer peer-checked:bg-primary/50" htmlFor="toggle-installment"></label>
+            {type !== 'investment' && (
+              <div className="flex flex-col gap-3 mb-4">
+                {/* Installment Toggle */}
+                <div className="flex items-center gap-3">
+                  <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                    <input
+                      checked={isInstallment}
+                      onChange={() => {
+                        setIsInstallment(!isInstallment);
+                        if (!isInstallment) setIsFixed(false); // Disable fixed if enabling installment
+                      }}
+                      className="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary peer transition-all duration-200 left-0"
+                      id="toggle-installment"
+                      type="checkbox"
+                    />
+                    <label className="block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer peer-checked:bg-primary/50" htmlFor="toggle-installment"></label>
+                  </div>
+                  <label className="text-sm font-medium text-gray-700 cursor-pointer select-none" htmlFor="toggle-installment">
+                    Compra parcelada (Cartão de Crédito)
+                  </label>
                 </div>
-                <label className="text-sm font-medium text-gray-700 cursor-pointer select-none" htmlFor="toggle-installment">
-                  Compra parcelada (Cartão de Crédito)
-                </label>
-              </div>
 
-              {/* Fixed Toggle */}
-              <div className="flex items-center gap-3">
-                <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                  <input
-                    checked={isFixed}
-                    onChange={() => {
-                      setIsFixed(!isFixed);
-                      if (!isFixed) setIsInstallment(false); // Disable installment if enabling fixed
-                    }}
-                    className="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary peer transition-all duration-200 left-0"
-                    id="toggle-fixed"
-                    type="checkbox"
-                  />
-                  <label className="block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer peer-checked:bg-primary/50" htmlFor="toggle-fixed"></label>
+                {/* Fixed Toggle */}
+                <div className="flex items-center gap-3">
+                  <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                    <input
+                      checked={isFixed}
+                      onChange={() => {
+                        setIsFixed(!isFixed);
+                        if (!isFixed) setIsInstallment(false); // Disable installment if enabling fixed
+                      }}
+                      className="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary peer transition-all duration-200 left-0"
+                      id="toggle-fixed"
+                      type="checkbox"
+                    />
+                    <label className="block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer peer-checked:bg-primary/50" htmlFor="toggle-fixed"></label>
+                  </div>
+                  <label className="text-sm font-medium text-gray-700 cursor-pointer select-none" htmlFor="toggle-fixed">
+                    Fixo (Repetir por 12 meses)
+                  </label>
                 </div>
-                <label className="text-sm font-medium text-gray-700 cursor-pointer select-none" htmlFor="toggle-fixed">
-                  Fixo (Repetir por 12 meses)
-                </label>
               </div>
-            </div>
+            )}
 
-            {isInstallment && (
+            {isInstallment && type !== 'investment' && (
               <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold text-primary mb-1 uppercase tracking-wider">Parcela Atual</label>
@@ -364,7 +366,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
               </div>
             )}
 
-            {isFixed && (
+            {isFixed && type !== 'investment' && (
               <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
                 <p className="text-xs text-primary font-medium flex items-center gap-2">
                   <span className="material-symbols-outlined">repeat</span>
@@ -380,7 +382,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
           {/* Reference Month Selection */}
           <div className="pt-2 border-t border-dashed border-gray-200">
             <label className="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-              {type === 'expense' ? 'Contabilizar em qual mês?' : 'Mês de Referência'}
+              {type === 'expense' ? 'Contabilizar em qual mês?' : type === 'investment' ? 'Mês do Investimento' : 'Mês de Referência'}
             </label>
             <div className="flex gap-2">
               <button
@@ -408,16 +410,16 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
               </button>
             </div>
             <p className="text-[10px] text-gray-500 italic mt-2 ml-1">
-              * Define em qual mês {type === 'expense' ? 'esta despesa' : 'esta receita'} será contabilizada no seu orçamento.
+              * Define em qual mês {type === 'expense' ? 'esta despesa' : type === 'investment' ? 'este investimento' : 'esta receita'} será contabilizada no seu orçamento.
             </p>
           </div>
         </div>
 
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
           <button onClick={onClose} disabled={loading} className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 rounded-lg transition-colors">Cancelar</button>
-          <button onClick={handleSubmit} disabled={loading} className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary-hover rounded-lg shadow-md shadow-primary/20 transition-colors flex items-center gap-2">
+          <button onClick={handleSubmit} disabled={loading} className={`px-4 py-2 text-sm font-bold text-white rounded-lg shadow-md transition-colors flex items-center gap-2 ${type === 'investment' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20' : 'bg-primary hover:bg-primary-hover shadow-primary/20'}`}>
             <span className="material-symbols-outlined text-[18px]">check</span>
-            {loading ? 'Salvando...' : 'Salvar ' + (type === 'expense' ? 'Despesa' : 'Receita')}
+            {loading ? 'Salvando...' : 'Salvar ' + (type === 'expense' ? 'Despesa' : type === 'investment' ? 'Investimento' : 'Receita')}
           </button>
         </div>
       </div>

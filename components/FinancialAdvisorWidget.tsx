@@ -47,7 +47,7 @@ const FinancialAdvisorWidget: React.FC<Props> = ({ transactions, stats, onAddTra
             {/* Floating Action Button */}
             <button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-[80px] md:bottom-6 right-4 md:right-6 w-14 h-14 bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-full shadow-xl hover:shadow-2xl transition-all hover:scale-105 z-50 flex items-center justify-center"
+                className="fixed bottom-[100px] md:bottom-8 right-4 md:right-8 w-14 h-14 bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-2xl transition-all hover:scale-105 z-[100] flex items-center justify-center border-2 border-white dark:border-gray-800"
                 title="Falar com MarcAI"
             >
                 <span className="material-symbols-outlined text-3xl">smart_toy</span>

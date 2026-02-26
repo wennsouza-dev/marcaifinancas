@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import NewExpenseModal from '../components/NewExpenseModal';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface ChartData {
@@ -14,6 +15,8 @@ const Investments: React.FC = () => {
     const { user } = useAuth();
     const [totalInvested, setTotalInvested] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [investmentsList, setInvestmentsList] = useState<any[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Calculator State
     const [initialAmount, setInitialAmount] = useState<string>('0');
@@ -30,28 +33,31 @@ const Investments: React.FC = () => {
     const [resultTotalFinal, setResultTotalFinal] = useState(0);
     const [chartData, setChartData] = useState<ChartData[]>([]);
 
+    const fetchInvestmentsData = async () => {
+        if (!user) return;
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('transactions')
+                .select('*') // Select all to build the list
+                .eq('user_id', user.id)
+                .eq('type', 'expense')
+                .eq('category', 'Investimentos')
+                .order('date', { ascending: false });
+
+            if (error) throw error;
+            const total = data.reduce((sum, item) => sum + Number(item.amount), 0);
+            setTotalInvested(total);
+            setInvestmentsList(data);
+        } catch (error) {
+            console.error('Error fetching investments:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchInvestments = async () => {
-            if (!user) return;
-            try {
-                const { data, error } = await supabase
-                    .from('transactions')
-                    .select('amount')
-                    .eq('user_id', user.id)
-                    .eq('type', 'expense')
-                    .eq('category', 'Investimentos');
-
-                if (error) throw error;
-                const total = data.reduce((sum, item) => sum + Number(item.amount), 0);
-                setTotalInvested(total);
-            } catch (error) {
-                console.error('Error fetching investments:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchInvestments();
+        fetchInvestmentsData();
     }, [user]);
 
     const formatCurrencyInput = (value: string) => {
@@ -136,15 +142,30 @@ const Investments: React.FC = () => {
         <div className="p-4 md:p-8 max-w-7xl mx-auto w-full pb-32">
             <h1 className="text-2xl font-bold text-gray-800 mb-6">Investimentos e Simulador</h1>
 
-            <div className="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-100 flex items-center justify-between">
-                <div>
-                    <h2 className="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">Total Investido Real</h2>
-                    <p className="text-3xl font-bold text-emerald-600">
-                        {totalInvested.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </p>
+            <div className="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center justify-between w-full md:w-auto md:gap-6">
+                    <div>
+                        <h2 className="text-sm font-medium text-gray-500 mb-1 uppercase tracking-wider">Total Investido Real</h2>
+                        <p className="text-3xl font-bold text-emerald-600">
+                            {totalInvested.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </p>
+                    </div>
+                    <div className="size-12 bg-emerald-50 rounded-full flex md:hidden items-center justify-center text-emerald-600 shrink-0">
+                        <span className="material-symbols-outlined text-2xl">account_balance</span>
+                    </div>
                 </div>
-                <div className="size-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600">
-                    <span className="material-symbols-outlined text-2xl">account_balance</span>
+
+                <div className="flex items-center gap-4 w-full md:w-auto justify-end">
+                    <div className="size-12 bg-emerald-50 rounded-full hidden md:flex items-center justify-center text-emerald-600 shrink-0">
+                        <span className="material-symbols-outlined text-2xl">account_balance</span>
+                    </div>
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="h-12 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/20 font-bold hover:bg-blue-700 transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm px-4 w-full md:w-auto"
+                    >
+                        <span className="material-symbols-outlined text-xl">trending_up</span>
+                        Novo Investimento
+                    </button>
                 </div>
             </div>
 
@@ -339,6 +360,55 @@ const Investments: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* HISTÓRICO DE INVESTIMENTOS */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+                <div className="bg-gray-800 text-white px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="size-8 bg-white/20 rounded flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[20px]">history</span>
+                        </div>
+                        <h3 className="font-bold tracking-wide text-sm md:text-base">MEUS INVESTIMENTOS</h3>
+                    </div>
+                </div>
+                <div className="p-0">
+                    {investmentsList.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+                            <span className="material-symbols-outlined text-4xl mb-2 opacity-20">inventory_2</span>
+                            <p className="text-sm">Nenhum investimento registrado.</p>
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-gray-50">
+                            {investmentsList.map((t, i) => (
+                                <div key={i} className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors group">
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-blue-50 text-blue-600">
+                                            <span className="material-symbols-outlined text-[20px]">trending_up</span>
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-bold text-gray-900 break-words">{t.description}</p>
+                                            <p className="text-[11px] text-gray-500">{new Date(t.date).toLocaleDateString('pt-BR')}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col items-end shrink-0 ml-4">
+                                        <span className="text-sm font-bold text-gray-900 whitespace-nowrap">
+                                            R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {isModalOpen && (
+                <NewExpenseModal
+                    onClose={() => setIsModalOpen(false)}
+                    type="investment"
+                    onSuccess={fetchInvestmentsData}
+                />
             )}
         </div>
     );
