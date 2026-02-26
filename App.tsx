@@ -14,6 +14,8 @@ const Layout = React.lazy(() => import('./components/Layout'));
 const Auth = React.lazy(() => import('./pages/Auth'));
 const Admin = React.lazy(() => import('./pages/Admin'));
 const Landing = React.lazy(() => import('./pages/Landing'));
+const SharedLogin = React.lazy(() => import('./pages/SharedLogin'));
+const SharedDashboard = React.lazy(() => import('./pages/SharedDashboard'));
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 const PageLoader = () => (
@@ -94,6 +96,8 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/shared-login" element={<SharedLogin />} />
+            <Route path="/shared-dashboard" element={<SharedDashboard />} />
 
             <Route element={<ProtectedRoute />}>
               <Route path="/admin" element={<Admin />} />

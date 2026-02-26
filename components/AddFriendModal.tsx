@@ -10,6 +10,7 @@ interface AddFriendModalProps {
 const AddFriendModal: React.FC<AddFriendModalProps> = ({ onClose, onSuccess }) => {
     const { user } = useAuth();
     const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -20,7 +21,7 @@ const AddFriendModal: React.FC<AddFriendModalProps> = ({ onClose, onSuccess }) =
         try {
             const { error } = await supabase
                 .from('friends')
-                .insert([{ user_id: user.id, name }]);
+                .insert([{ user_id: user.id, name, email: email.trim() || null }]);
 
             if (error) throw error;
             onSuccess();
@@ -53,6 +54,17 @@ const AddFriendModal: React.FC<AddFriendModalProps> = ({ onClose, onSuccess }) =
                             className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-medium text-text-main dark:text-white"
                             placeholder="Ex: Ana Silva"
                             required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-text-secondary mb-1">Email <span className="text-gray-400 font-normal">(Opcional, para Gastos Compartilhados)</span></label>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-medium text-text-main dark:text-white"
+                            placeholder="Ex: ana@email.com"
                         />
                     </div>
 

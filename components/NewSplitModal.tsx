@@ -14,7 +14,7 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
     const [friends, setFriends] = useState<any[]>([]);
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
-    const [selectedFriends, setSelectedFriends] = useState<{ id?: string, name: string }[]>([]);
+    const [selectedFriends, setSelectedFriends] = useState<{ id?: string, name: string, email?: string }[]>([]);
     const [loading, setLoading] = useState(false);
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -103,7 +103,8 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
     const handleAddCustomFriend = () => {
         const name = prompt('Nome da pessoa:');
         if (name) {
-            setSelectedFriends([...selectedFriends, { name }]);
+            const email = prompt('E-mail (opcional, para Gastos Compartilhados):');
+            setSelectedFriends([...selectedFriends, { name, email: email ? email.trim() : undefined }]);
         }
     };
 
@@ -136,7 +137,7 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                 } else {
                     const { data: newFriend, error: friendError } = await supabase
                         .from('friends')
-                        .insert([{ user_id: user.id, name: sf.name }])
+                        .insert([{ user_id: user.id, name: sf.name, email: sf.email || null }])
                         .select()
                         .single();
                     if (friendError) throw friendError;
@@ -271,8 +272,8 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                                 type="button"
                                 onClick={isRecording ? stopRecording : startRecording}
                                 className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-all shadow-sm ${isRecording
-                                        ? 'bg-red-500 text-white animate-bounce shadow-red-200'
-                                        : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 hover:scale-105'
+                                    ? 'bg-red-500 text-white animate-bounce shadow-red-200'
+                                    : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 hover:scale-105'
                                     }`}
                                 title={isRecording ? "Parar gravação" : "Falar despesa"}
                             >

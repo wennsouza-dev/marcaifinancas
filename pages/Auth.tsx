@@ -116,7 +116,20 @@ const Auth: React.FC = () => {
                     >
                         {isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Entre'}
                     </button>
-                    <div className="mt-4">
+
+                    <div className="mt-8 pt-6 border-t border-gray-100">
+                        <p className="text-gray-500 text-xs mb-3 font-medium uppercase tracking-wider">Acesso para Amigos</p>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/shared-login')}
+                            className="w-full flex justify-center items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-3 rounded-lg border border-indigo-200 transition-colors"
+                        >
+                            <span className="material-symbols-outlined">group</span>
+                            GASTOS COMPARTILHADOS
+                        </button>
+                    </div>
+
+                    <div className="mt-6">
                         <button onClick={() => navigate('/')} className="text-gray-400 hover:text-gray-600 text-sm">
                             ← Voltar para Home
                         </button>
