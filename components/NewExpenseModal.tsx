@@ -194,41 +194,39 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
 
         <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
           {/* Smart Input Actions */}
-          <div className="flex gap-2 mb-4">
-
-            {hasSupport && (
-              <div className="flex-1 flex flex-col gap-2">
+          {hasSupport && (
+            <div className="mb-6 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-4 border border-indigo-100 dark:border-indigo-500/20 overflow-hidden relative">
+              {isRecording && (
+                <div className="absolute inset-0 bg-indigo-100/50 dark:bg-indigo-900/40 animate-pulse pointer-events-none"></div>
+              )}
+              <div className="flex items-center gap-3 relative z-10">
                 <button
+                  type="button"
                   onClick={isRecording ? stopRecording : startRecording}
                   disabled={processingAudio}
-                  className={`flex flex-col items-center justify-center w-full py-4 border-2 border-dashed rounded-lg transition-colors gap-2 disabled:opacity-50 ${isRecording ? 'border-red-300 bg-red-50 text-red-600 hover:bg-red-100' : 'border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-primary'}`}
+                  className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-all shadow-sm ${processingAudio ? 'opacity-50 cursor-not-allowed bg-indigo-400 text-white' : isRecording ? 'bg-red-500 text-white animate-bounce shadow-red-200' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 hover:scale-105'}`}
+                  title={isRecording ? "Parar gravação" : "Falar transação"}
                 >
                   {processingAudio ? (
-                    <>
-                      <span className="material-symbols-outlined animate-spin text-2xl">progress_activity</span>
-                      <span className="text-[10px] font-medium text-center px-2">Processando Áudio...</span>
-                    </>
-                  ) : isRecording ? (
-                    <>
-                      <span className="material-symbols-outlined text-2xl animate-pulse">mic</span>
-                      <span className="text-[10px] font-medium text-center px-2">Gravando... (Clique p/ Parar)</span>
-                    </>
+                    <span className="material-symbols-outlined text-2xl animate-spin">progress_activity</span>
                   ) : (
-                    <>
-                      <span className="material-symbols-outlined text-2xl">mic</span>
-                      <span className="text-[10px] font-medium text-center px-2">Falar Transação (Ex: Gastei 50 no pão)</span>
-                    </>
+                    <span className="material-symbols-outlined text-2xl">
+                      {isRecording ? 'stop_circle' : 'mic'}
+                    </span>
                   )}
                 </button>
+                <div>
+                  <h4 className="font-bold text-indigo-900 dark:text-indigo-300 text-sm flex items-center gap-2">
+                    Registro Inteligente
+                    {processingAudio && <span className="text-[10px] bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full animate-pulse font-medium">Processando...</span>}
+                  </h4>
+                  <p className="text-xs text-indigo-700/80 dark:text-indigo-400 mt-0.5">
+                    {processingAudio ? "Aguarde a IA interpretar..." : isRecording ? "Ouvindo... Fale com clareza." : type === 'expense' ? 'Ex: "Gastei 50 no pão"' : type === 'investment' ? 'Ex: "Investi 100 no Tesouro Direto"' : 'Ex: "Recebi 1500 de salário"'}
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
-
-          <div className="flex justify-center mb-4">
-            <p className="text-[10px] text-gray-400">
-              Lembre-se de falar de forma clara para melhor precisão.
-            </p>
-          </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
