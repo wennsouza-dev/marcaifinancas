@@ -50,9 +50,6 @@ const Landing: React.FC = () => {
                             <button onClick={() => navigate('/auth')} className="text-sm font-semibold text-gray-600 hover:text-emerald-600 transition-colors">
                                 Entrar
                             </button>
-                            <button onClick={() => navigate('/auth')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-all shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/30">
-                                Começar Grátis
-                            </button>
                         </div>
                     </div>
                 </div>
