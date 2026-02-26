@@ -3,7 +3,9 @@ ALTER TABLE public.friends
 ADD COLUMN IF NOT EXISTS email text;
 
 -- 2. Create the RPC function to get shared expenses blindly via email
--- This uses SECURITY DEFINER to bypass RLS, ensuring anyone with the exact email can see their grouped expenses.
+-- Drop the function first to allow changing the return table signature
+DROP FUNCTION IF EXISTS get_shared_expenses_by_email(text);
+
 CREATE OR REPLACE FUNCTION get_shared_expenses_by_email(friend_email text)
 RETURNS TABLE (
     split_expense_id uuid,
@@ -11,7 +13,7 @@ RETURNS TABLE (
     total_amount numeric,
     installment_number integer,
     total_installments integer,
-    date timestamp with time zone,
+    date date, -- Fixed: changed from timestamp with time zone to date
     billing_date date,
     creator_name text,
     amount_owed numeric,

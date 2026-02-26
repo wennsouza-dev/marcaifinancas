@@ -43,9 +43,12 @@ const SharedDashboard: React.FC = () => {
 
     const fetchSharedExpenses = async (email: string) => {
         try {
+            console.log('Fetching shared expenses for email:', email);
             const { data, error } = await supabase.rpc('get_shared_expenses_by_email', {
                 friend_email: email
             });
+
+            console.log('RPC Response:', { data, error });
 
             if (error) throw error;
             setExpenses(data || []);
