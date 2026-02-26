@@ -191,12 +191,20 @@ const SplitExpenses: React.FC = () => {
 
   const handleEditFriend = async (friend: any) => {
     const newName = prompt('Novo nome para ' + friend.name + ':', friend.name);
-    if (!newName || newName === friend.name) return;
+    if (newName === null) return;
+    const finalName = newName.trim() || friend.name;
+
+    const currentEmail = friend.email || '';
+    const newEmail = prompt('Novo E-mail (opcional, para Gastos Compartilhados):', currentEmail);
+    if (newEmail === null) return;
+    const finalEmail = newEmail.trim() || null;
+
+    if (finalName === friend.name && finalEmail === currentEmail) return;
 
     try {
       const { error } = await supabase
         .from('friends')
-        .update({ name: newName })
+        .update({ name: finalName, email: finalEmail })
         .eq('id', friend.id);
 
       if (error) throw error;
@@ -363,7 +371,10 @@ const SplitExpenses: React.FC = () => {
                       <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
                         {f.name.substring(0, 2).toUpperCase()}
                       </div>
-                      <span className="text-sm font-medium text-text-main dark:text-white">{f.name}</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-text-main dark:text-white">{f.name}</span>
+                        {f.email && <span className="text-xs text-gray-400 mt-0.5">{f.email}</span>}
+                      </div>
                     </div>
                     <div className="flex gap-1">
                       <button onClick={() => handleEditFriend(f)} className="p-1.5 hover:bg-gray-200 dark:hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-primary">
