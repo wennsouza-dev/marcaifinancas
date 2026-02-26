@@ -131,8 +131,10 @@ export const useFinancialAdvisor = (transactions: any[], stats: any, onActionRec
             console.error('Advisor Error:', error);
             let userMessage = "Desculpe, tive um problema de conexão com o cérebro (API). Tente novamente mais tarde.";
 
-            if (error.message?.includes('API key not valid') || error.message?.includes('API_KEY_INVALID')) {
-                userMessage = "A chave da API do Gemini parece ser inválida. Verifique o seu arquivo .env.";
+            if (error.message?.includes('API key expired') || error.message?.includes('API_KEY_INVALID')) {
+                userMessage = "A chave de API que você está usando (no arquivo .env) está expirada ou foi cancelada pelo Google. Por favor, gere uma chave em uma conta diferente no Google AI Studio.";
+            } else if (error.message?.includes('API key not valid')) {
+                userMessage = "A chave da API do Gemini parece ser inválida. Verifique o seu arquivo .env e remova os espaços vazios.";
             } else if (error.message?.includes('quota') || error.message?.includes('429')) {
                 userMessage = "Sua cota do Gemini foi excedida (ou o projeto está sem limite). Por favor, gere uma NOVA chave no Google AI Studio (aistudio.google.com) e cole no seu .env.";
             }
