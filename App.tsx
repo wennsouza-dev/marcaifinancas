@@ -11,7 +11,6 @@ const Settings = React.lazy(() => import('./pages/Settings'));
 const SplitExpenses = React.lazy(() => import('./pages/SplitExpenses'));
 const Investments = React.lazy(() => import('./pages/Investments'));
 const Goals = React.lazy(() => import('./pages/Goals'));
-const RecurringTransactions = React.lazy(() => import('./pages/RecurringTransactions'));
 const Onboarding = React.lazy(() => import('./pages/Onboarding'));
 const Layout = React.lazy(() => import('./components/Layout'));
 const Auth = React.lazy(() => import('./pages/Auth'));
@@ -110,7 +109,6 @@ const App: React.FC = () => {
                 <Route path="/investments" element={<Investments />} />
                 <Route path="/split" element={<SplitExpenses />} />
                 <Route path="/goals" element={<Goals />} />
-                <Route path="/recurring" element={<RecurringTransactions />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
               </Route>

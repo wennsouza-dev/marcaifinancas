@@ -21,6 +21,7 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
     // New Fields
     const [splitType, setSplitType] = useState<'half' | 'full'>('half');
     const [isInstallment, setIsInstallment] = useState(false);
+    const [isFixed, setIsFixed] = useState(false);
     // const [installmentsCount, setInstallmentsCount] = useState('1'); // Removed in favor of explicitly controlled inputs
     const [currentInstallment, setCurrentInstallment] = useState(1);
     const [remainingInstallments, setRemainingInstallments] = useState(0);
@@ -116,12 +117,12 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
             const totalAmount = parseFloat(amount);
             // If Installment, calc total count (Current + Remaining). 
             // If Standard, it's just 1.
-            const totalInstallmentsCount = isInstallment ? (currentInstallment + remainingInstallments) : 1;
+            const totalInstallmentsCount = isFixed ? 12 : (isInstallment ? (currentInstallment + remainingInstallments) : 1);
 
             // Loop Count: How many items to generate?
             // Installment: All of them (from 1 to Total). We generate ALL history to safeguard coherence.
             // Standard: 1.
-            const loopCount = isInstallment ? totalInstallmentsCount : 1;
+            const loopCount = isFixed ? 12 : (isInstallment ? totalInstallmentsCount : 1);
 
             const groupId = (typeof crypto !== 'undefined' && crypto.randomUUID)
                 ? crypto.randomUUID()
@@ -169,10 +170,10 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
 
                 // Date Calculation
                 const installmentDate = new Date(baseDate);
-                if (isInstallment) {
+                if (isInstallment || isFixed) {
                     // Logic: baseDate entered by user usually refers to the CURRENT installment date.
                     // Shift = (Actual - Current). 
-                    const shift = actualInstallmentNumber - currentInstallment;
+                    const shift = isFixed ? i : (actualInstallmentNumber - currentInstallment);
                     installmentDate.setMonth(baseDate.getMonth() + shift);
                 } else {
                     // Fixed or Standard: Just add i months
@@ -188,12 +189,12 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                     .from('split_expenses')
                     .insert([{
                         created_by: user.id,
-                        description: isInstallment ? `${description} (${actualInstallmentNumber}/${totalInstallmentsCount})` : description,
+                        description: isFixed ? description : (isInstallment ? `${description} (${actualInstallmentNumber}/${totalInstallmentsCount})` : description),
                         amount: monthlyTotal,
                         date: installmentDate.toISOString(),
                         group_id: groupId,
                         installment_number: actualInstallmentNumber,
-                        total_installments: totalInstallmentsCount,
+                        total_installments: isFixed ? null : totalInstallmentsCount,
                         billing_date: currentBillingDate
                     }])
                     .select()
@@ -228,7 +229,7 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                             type: 'expense',
                             group_id: groupId,
                             installment_number: actualInstallmentNumber,
-                            total_installments: totalInstallmentsCount,
+                            total_installments: isFixed ? null : totalInstallmentsCount,
                             billing_date: currentBillingDate
                         }]);
 
@@ -401,11 +402,25 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-3">
+                            <div className="grid grid-cols-2 gap-3 mb-2">
+                                {/* Fixed Toggle */}
+                                <div
+                                    onClick={() => {
+                                        setIsFixed(!isFixed);
+                                        if (!isFixed) setIsInstallment(false);
+                                    }}
+                                    className={`flex flex-col items-center justify-center p-3 rounded-xl border cursor-pointer transition-all ${isFixed ? 'bg-primary/10 border-primary text-primary' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-400'}`}
+                                >
+                                    <span className="material-symbols-outlined mb-1">repeat</span>
+                                    <span className="text-xs font-bold">Fixo</span>
+                                    <span className="text-[9px] text-center mt-1 opacity-70">12 meses</span>
+                                </div>
+
                                 {/* Installment Toggle */}
                                 <div
                                     onClick={() => {
                                         setIsInstallment(!isInstallment);
+                                        if (!isInstallment) setIsFixed(false);
                                     }}
                                     className={`flex flex-col items-center justify-center p-3 rounded-xl border cursor-pointer transition-all ${isInstallment ? 'bg-primary/10 border-primary text-primary' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-400'}`}
                                 >

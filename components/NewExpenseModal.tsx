@@ -91,6 +91,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
   }, [initialAudioText]);
 
   // Installment logic
+  const [isFixed, setIsFixed] = useState(false);
   const [isInstallment, setIsInstallment] = useState(false);
   const [currentInstallment, setCurrentInstallment] = useState(1);
   const [remainingInstallments, setRemainingInstallments] = useState(0);
@@ -101,17 +102,17 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
     setLoading(true);
     try {
       const numericAmount = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
-      const groupId = isInstallment ? crypto.randomUUID() : null;
+      const groupId = (isInstallment || isFixed) ? crypto.randomUUID() : null;
 
       // Calculate Total Installments based on user input (Current + Remaining)
       // e.g. Current=5, Remaining=5 => Total=10.
-      const totalInstallments = isInstallment ? Number(currentInstallment) + Number(remainingInstallments) : null;
+      const totalInstallments = isFixed ? 12 : (isInstallment ? Number(currentInstallment) + Number(remainingInstallments) : null);
 
       const transactionsToInsert = [];
       // Use YYYY-MM-DD + T00:00:00 to stay in local day
       const baseDate = new Date(date + 'T00:00:00');
 
-      if (isInstallment) {
+      if (isInstallment || isFixed) {
         // Generate ALL installments (from 1 to Total) to keep history consistent
         // Loop count is the Total Number of Installments
         const count = totalInstallments || 1;
@@ -126,14 +127,14 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
           // e.g. Current=5 (May). Actual=1. Shift = 1-5 = -4 months. (Jan)
           // e.g. Current=5 (May). Actual=6. Shift = 6-5 = +1 month. (Jun)
 
-          const shift = actualInstallmentNumber - Number(currentInstallment);
+          const shift = isFixed ? i : (actualInstallmentNumber - Number(currentInstallment));
 
           const installmentDate = new Date(baseDate);
           installmentDate.setMonth(baseDate.getMonth() + shift);
 
           transactionsToInsert.push({
             user_id: user.id,
-            description: `${description} (${actualInstallmentNumber}/${totalInstallments})`,
+            description: isFixed ? description : `${description} (${actualInstallmentNumber}/${totalInstallments})`,
             amount: numericAmount,
             date: installmentDate.toISOString().split('T')[0],
             category,
@@ -141,7 +142,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
             type: type === 'investment' ? 'expense' : type,
             group_id: groupId,
             installment_number: actualInstallmentNumber,
-            total_installments: totalInstallments,
+            total_installments: isFixed ? null : totalInstallments,
             billing_date: refMonthShift !== 0 ? new Date(installmentDate.getFullYear(), installmentDate.getMonth() + refMonthShift, 1).toISOString().split('T')[0] : null
           });
         }
@@ -337,6 +338,27 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
           <div className="pt-2 border-t border-dashed border-gray-200">
             {type !== 'investment' && (
               <div className="flex flex-col gap-3 mb-4">
+                {/* Fixed Toggle */}
+                <div className="flex items-center gap-3">
+                  <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                    <input
+                      checked={isFixed}
+                      onChange={() => {
+                        setIsFixed(!isFixed);
+                        if (!isFixed) setIsInstallment(false);
+                      }}
+                      className="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary peer transition-all duration-200 left-0"
+                      id="toggle-fixed"
+                      type="checkbox"
+                    />
+                    <label className="block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer peer-checked:bg-primary/50" htmlFor="toggle-fixed"></label>
+                  </div>
+                  <label className="text-sm font-medium text-gray-700 cursor-pointer select-none flex flex-col" htmlFor="toggle-fixed">
+                    Fixo (Repetir por 12 meses)
+                    <span className="text-[10px] font-normal text-gray-400">Para aluguel, internet, assinaturas...</span>
+                  </label>
+                </div>
+
                 {/* Installment Toggle */}
                 <div className="flex items-center gap-3">
                   <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
@@ -344,6 +366,7 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
                       checked={isInstallment}
                       onChange={() => {
                         setIsInstallment(!isInstallment);
+                        if (!isInstallment) setIsFixed(false);
                       }}
                       className="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary peer transition-all duration-200 left-0"
                       id="toggle-installment"
