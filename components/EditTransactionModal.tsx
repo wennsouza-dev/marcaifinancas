@@ -21,7 +21,6 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
 
     // Installment/Fixed conversion state
     const [isInstallment, setIsInstallment] = useState(false);
-    const [isFixed, setIsFixed] = useState(false);
     const [currentInstallment, setCurrentInstallment] = useState(1);
     const [remainingInstallments, setRemainingInstallments] = useState(0);
 
@@ -119,48 +118,6 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                             .insert(transactionsToInsert);
                         if (insertError) throw insertError;
                     }
-
-                } else if (isFixed) {
-                    // CONVERT TO FIXED LOGIC (12 Months)
-                    const newGroupId = crypto.randomUUID();
-                    updatePayload.group_id = newGroupId;
-                    updatePayload.installment_number = 1;
-                    updatePayload.total_installments = null; // recurring fixed, no 1/12 badge
-
-                    // 1. Update ONLY the current transaction first (to link it)
-                    const { error: updateError } = await supabase
-                        .from('transactions')
-                        .update(updatePayload)
-                        .eq('id', transaction.id);
-
-                    if (updateError) throw updateError;
-
-                    // 2. Create the next 11 transactions
-                    const transactionsToInsert = [];
-                    for (let i = 1; i < 12; i++) {
-                        const recurringDate = new Date(baseDate);
-                        recurringDate.setMonth(baseDate.getMonth() + i);
-
-                        transactionsToInsert.push({
-                            user_id: user.id,
-                            description: description,
-                            amount: numericAmount,
-                            date: recurringDate.toISOString().split('T')[0],
-                            category,
-                            payment_method: paymentMethod,
-                            type: transaction.type, // Ensure type is preserved
-                            group_id: newGroupId,
-                            installment_number: i + 1,
-                            total_installments: null,
-                            billing_date: refMonthShift !== 0 ? new Date(recurringDate.getFullYear(), recurringDate.getMonth() + refMonthShift, 1).toISOString().split('T')[0] : null
-                        });
-                    }
-
-                    const { error: insertError } = await supabase
-                        .from('transactions')
-                        .insert(transactionsToInsert);
-
-                    if (insertError) throw insertError;
 
                 } else {
                     // Standard single update
@@ -370,7 +327,6 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                                             checked={isInstallment}
                                             onChange={() => {
                                                 setIsInstallment(!isInstallment);
-                                                if (!isInstallment) setIsFixed(false);
                                             }}
                                             className="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary peer transition-all duration-200 left-0"
                                             id="edit-toggle-installment"
@@ -380,26 +336,6 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                                     </div>
                                     <label className="text-sm font-medium text-gray-700 cursor-pointer select-none" htmlFor="edit-toggle-installment">
                                         Transformar em Parcelado (Cartão)
-                                    </label>
-                                </div>
-
-                                {/* Fixed Toggle */}
-                                <div className="flex items-center gap-3">
-                                    <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                        <input
-                                            checked={isFixed}
-                                            onChange={() => {
-                                                setIsFixed(!isFixed);
-                                                if (!isFixed) setIsInstallment(false);
-                                            }}
-                                            className="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary peer transition-all duration-200 left-0"
-                                            id="edit-toggle-fixed"
-                                            type="checkbox"
-                                        />
-                                        <label className="block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer peer-checked:bg-primary/50" htmlFor="edit-toggle-fixed"></label>
-                                    </div>
-                                    <label className="text-sm font-medium text-gray-700 cursor-pointer select-none" htmlFor="edit-toggle-fixed">
-                                        Transformar em Fixo (12 meses)
                                     </label>
                                 </div>
                             </div>
@@ -428,15 +364,6 @@ const EditTransactionModal: React.FC<Props> = ({ transaction, onClose, onSuccess
                                     </div>
                                     <p className="col-span-2 text-[10px] text-gray-500 italic">
                                         * Serão criadas {remainingInstallments + 1} transações vinculadas. Esta será a {currentInstallment}ª de {Number(currentInstallment) + Number(remainingInstallments)}.
-                                    </p>
-                                </div>
-                            )}
-
-                            {isFixed && (
-                                <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 mb-3">
-                                    <p className="text-xs text-primary font-medium flex items-center gap-2">
-                                        <span className="material-symbols-outlined">repeat</span>
-                                        Repetir automaticamente por 12 meses
                                     </p>
                                 </div>
                             )}

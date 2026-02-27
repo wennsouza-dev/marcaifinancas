@@ -25,7 +25,6 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
     const [currentInstallment, setCurrentInstallment] = useState(1);
     const [remainingInstallments, setRemainingInstallments] = useState(0);
     const [isNextInvoice, setIsNextInvoice] = useState(false);
-    const [isFixed, setIsFixed] = useState(false);
 
     const [processingAudio, setProcessingAudio] = useState(false);
 
@@ -115,15 +114,14 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
 
         try {
             const totalAmount = parseFloat(amount);
-            // If Fixed, force 12 installments. If Installment, calc total count (Current + Remaining). 
+            // If Installment, calc total count (Current + Remaining). 
             // If Standard, it's just 1.
-            const totalInstallmentsCount = isFixed ? 12 : (isInstallment ? (currentInstallment + remainingInstallments) : 1);
+            const totalInstallmentsCount = isInstallment ? (currentInstallment + remainingInstallments) : 1;
 
             // Loop Count: How many items to generate?
-            // Fixed: 12.
             // Installment: All of them (from 1 to Total). We generate ALL history to safeguard coherence.
             // Standard: 1.
-            const loopCount = isFixed ? 12 : (isInstallment ? totalInstallmentsCount : 1);
+            const loopCount = isInstallment ? totalInstallmentsCount : 1;
 
             const groupId = (typeof crypto !== 'undefined' && crypto.randomUUID)
                 ? crypto.randomUUID()
@@ -147,12 +145,11 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
 
             // Calculation Logic:
             // - If Installment: Input Amount IS the PARCEL value.
-            // - If Fixed: Input Amount IS the MONTHLY value.
             // - If Standard: Input Amount IS the TOTAL value.
 
             let monthlyTotal = totalAmount;
 
-            if (!isFixed && !isInstallment) {
+            if (!isInstallment) {
                 // Standard split: Total amount is divided by 1 month.
                 monthlyTotal = totalAmount;
             }
@@ -191,12 +188,12 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                     .from('split_expenses')
                     .insert([{
                         created_by: user.id,
-                        description: isFixed ? description : (isInstallment ? `${description} (${actualInstallmentNumber}/${totalInstallmentsCount})` : description),
+                        description: isInstallment ? `${description} (${actualInstallmentNumber}/${totalInstallmentsCount})` : description,
                         amount: monthlyTotal,
                         date: installmentDate.toISOString(),
                         group_id: groupId,
                         installment_number: actualInstallmentNumber,
-                        total_installments: isFixed ? null : totalInstallmentsCount,
+                        total_installments: totalInstallmentsCount,
                         billing_date: currentBillingDate
                     }])
                     .select()
@@ -231,7 +228,7 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                             type: 'expense',
                             group_id: groupId,
                             installment_number: actualInstallmentNumber,
-                            total_installments: isFixed ? null : totalInstallmentsCount,
+                            total_installments: totalInstallmentsCount,
                             billing_date: currentBillingDate
                         }]);
 
@@ -404,25 +401,11 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
-                                {/* Fixed Toggle */}
-                                <div
-                                    onClick={() => {
-                                        setIsFixed(!isFixed);
-                                        if (!isFixed) setIsInstallment(false); // Disable installment if fixed
-                                    }}
-                                    className={`flex flex-col items-center justify-center p-3 rounded-xl border cursor-pointer transition-all ${isFixed ? 'bg-primary/10 border-primary text-primary' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-400'}`}
-                                >
-                                    <span className="material-symbols-outlined mb-1">repeat</span>
-                                    <span className="text-xs font-bold">Fixo (12 Meses)</span>
-                                    <span className="text-[9px] text-center mt-1 opacity-70">Para aluguel, internet...</span>
-                                </div>
-
+                            <div className="grid grid-cols-1 gap-3">
                                 {/* Installment Toggle */}
                                 <div
                                     onClick={() => {
                                         setIsInstallment(!isInstallment);
-                                        if (!isInstallment) setIsFixed(false); // Disable fixed if installment
                                     }}
                                     className={`flex flex-col items-center justify-center p-3 rounded-xl border cursor-pointer transition-all ${isInstallment ? 'bg-primary/10 border-primary text-primary' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-400'}`}
                                 >

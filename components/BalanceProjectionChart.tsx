@@ -48,7 +48,7 @@ const BalanceProjectionChart: React.FC<BalanceProjectionChartProps> = ({ data, c
                         <span className="material-symbols-outlined text-[18px] text-indigo-500">query_stats</span>
                         Previsão dos Próximos 3 Meses
                     </h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Baseado nos seus gastos fixos e renda média</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Baseado no seu histórico de gastos e renda média</p>
                 </div>
                 <div className="text-right shrink-0 ml-2">
                     <p className="text-[10px] text-gray-400 uppercase tracking-wide">Tendência</p>

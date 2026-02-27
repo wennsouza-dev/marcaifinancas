@@ -320,9 +320,6 @@ const Dashboard: React.FC = () => {
         }}
       />
 
-      {/* Smart Spending Alerts */}
-      <SmartAlertBanner alerts={spendingAlerts} month={selectedMonth} year={selectedYear} />
-
       {/* Stats Grid */}
       <div className="flex flex-col gap-6 mb-8">
         <div className="grid grid-cols-2 gap-6">

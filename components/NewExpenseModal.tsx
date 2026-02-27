@@ -61,7 +61,6 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
 
         if (parsed.isInstallment) {
           setIsInstallment(true);
-          setIsFixed(false);
           setCurrentInstallment(1);
           // If they say "in 3 installments", the remaining is 2 (since current is 1)
           // If the parser returns 3, we set remaining to 2.
@@ -93,7 +92,6 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
 
   // Installment logic
   const [isInstallment, setIsInstallment] = useState(false);
-  const [isFixed, setIsFixed] = useState(false);
   const [currentInstallment, setCurrentInstallment] = useState(1);
   const [remainingInstallments, setRemainingInstallments] = useState(0);
   const [refMonthShift, setRefMonthShift] = useState(0); // -1: Previous, 0: Current, 1: Next
@@ -145,29 +143,6 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
             installment_number: actualInstallmentNumber,
             total_installments: totalInstallments,
             billing_date: refMonthShift !== 0 ? new Date(installmentDate.getFullYear(), installmentDate.getMonth() + refMonthShift, 1).toISOString().split('T')[0] : null
-          });
-        }
-      } else if (isFixed) {
-        // FIXED LOGIC: Create 12 recurring transactions
-        const count = 12;
-        const fixedGroupId = crypto.randomUUID(); // Always group them for "This and Next" editing
-
-        for (let i = 0; i < count; i++) {
-          const recurringDate = new Date(baseDate);
-          recurringDate.setMonth(baseDate.getMonth() + i);
-
-          transactionsToInsert.push({
-            user_id: user.id,
-            description: description, // Do not append numbers for fixed expenses
-            amount: numericAmount, // Full amount for each month
-            date: recurringDate.toISOString().split('T')[0],
-            category,
-            payment_method: paymentMethod,
-            type: type === 'investment' ? 'expense' : type,
-            group_id: fixedGroupId,
-            installment_number: i + 1, // Needed for "This and Next" editing logic order
-            total_installments: null, // Set to null so UI doesn't show "1/12" badge
-            billing_date: refMonthShift !== 0 ? new Date(recurringDate.getFullYear(), recurringDate.getMonth() + refMonthShift, 1).toISOString().split('T')[0] : null
           });
         }
       } else {
@@ -369,7 +344,6 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
                       checked={isInstallment}
                       onChange={() => {
                         setIsInstallment(!isInstallment);
-                        if (!isInstallment) setIsFixed(false); // Disable fixed if enabling installment
                       }}
                       className="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary peer transition-all duration-200 left-0"
                       id="toggle-installment"
@@ -379,26 +353,6 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
                   </div>
                   <label className="text-sm font-medium text-gray-700 cursor-pointer select-none" htmlFor="toggle-installment">
                     Compra parcelada (Cartão de Crédito)
-                  </label>
-                </div>
-
-                {/* Fixed Toggle */}
-                <div className="flex items-center gap-3">
-                  <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                    <input
-                      checked={isFixed}
-                      onChange={() => {
-                        setIsFixed(!isFixed);
-                        if (!isFixed) setIsInstallment(false); // Disable installment if enabling fixed
-                      }}
-                      className="absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-primary peer transition-all duration-200 left-0"
-                      id="toggle-fixed"
-                      type="checkbox"
-                    />
-                    <label className="block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer peer-checked:bg-primary/50" htmlFor="toggle-fixed"></label>
-                  </div>
-                  <label className="text-sm font-medium text-gray-700 cursor-pointer select-none" htmlFor="toggle-fixed">
-                    Fixo (Repetir por 12 meses)
                   </label>
                 </div>
               </div>
@@ -432,17 +386,6 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
               </div>
             )}
 
-            {isFixed && type !== 'investment' && (
-              <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
-                <p className="text-xs text-primary font-medium flex items-center gap-2">
-                  <span className="material-symbols-outlined">repeat</span>
-                  Esta transação será repetida automaticamente pelos próximos 12 meses (incluindo o atual).
-                </p>
-                <p className="text-[10px] text-gray-500 italic mt-2">
-                  * Útil para aluguel, assinaturas, salários fixos, etc. Você poderá editar valores futuros individualmente ou em grupo depois.
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Reference Month Selection */}
