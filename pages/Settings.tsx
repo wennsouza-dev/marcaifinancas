@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../supabaseClient';
+import { useDarkMode } from '../hooks/useDarkMode';
 import Admin from './Admin'; // We can keep using Admin component if it exists, or replace the content.
 // Since I haven't seen Admin.tsx content, I'll assume users want the specific form described.
 // It's safer to implement the specific Admin form here or inside Admin.tsx.
@@ -10,6 +11,7 @@ const Settings: React.FC = () => {
   const { user, profile, refreshProfile } = useAuth();
   const [name, setName] = useState(profile?.name || '');
   const [saving, setSaving] = useState(false);
+  const { isDark, toggle: toggleDark } = useDarkMode();
 
   // Admin Form State
   const [newUserEmail, setNewUserEmail] = useState('');
@@ -359,15 +361,37 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
-      {/* Preferences Section - Helper Text Only */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-12 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+      {/* Preferences Section */}
+      <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-gray-200 dark:border-white/5 mb-12 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-white/5 flex items-center gap-2">
           <span className="material-symbols-outlined text-primary">tune</span>
-          <h2 className="text-text-main text-lg font-bold leading-tight">Preferências</h2>
+          <h2 className="text-text-main dark:text-white text-lg font-bold leading-tight">Preferências</h2>
         </div>
-        <div className="p-6 flex flex-col gap-6">
-          {/* Dark Mode toggle removed as per request */}
-          <p className="text-gray-500 font-medium">O tema padrão do sistema é Claro.</p>
+        <div className="p-6 flex flex-col gap-4">
+          {/* Dark Mode Toggle */}
+          <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-background-dark">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-white dark:bg-surface-dark flex items-center justify-center shadow-sm border border-gray-100 dark:border-white/10">
+                <span className="material-symbols-outlined text-gray-700 dark:text-yellow-300">
+                  {isDark ? 'dark_mode' : 'light_mode'}
+                </span>
+              </div>
+              <div>
+                <p className="text-text-main dark:text-white font-semibold text-sm">Tema Escuro</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{isDark ? 'Modo escuro ativado' : 'Modo claro ativado'}</p>
+              </div>
+            </div>
+            <button
+              onClick={toggleDark}
+              className={`relative w-12 h-6 rounded-full transition-colors duration-300 focus:outline-none ${isDark ? 'bg-indigo-500' : 'bg-gray-300'
+                }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-300 ${isDark ? 'translate-x-6' : 'translate-x-0'
+                  }`}
+              />
+            </button>
+          </div>
         </div>
       </div>
 

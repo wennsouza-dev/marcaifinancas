@@ -4,6 +4,7 @@ import EditTransactionModal from '../components/EditTransactionModal';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
+import BudgetSection from '../components/BudgetSection';
 
 const Transactions: React.FC = () => {
   const [showNewExpenseModal, setShowNewExpenseModal] = useState(false);
@@ -208,7 +209,22 @@ const Transactions: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters - Reorganized into 2 rows, no horizontal scroll */}
+      {/* Budget Section */}
+      {(() => {
+        // Compute month-filtered expenses per category (no other filters applied, just month)
+        const monthTxs = transactions.filter(t => {
+          const ref = t.billing_date || t.date;
+          const d = new Date(ref + 'T00:00:00');
+          return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear && t.type === 'expense';
+        });
+        const expensesByCategory: Record<string, number> = {};
+        monthTxs.forEach(t => {
+          expensesByCategory[t.category || 'Outros'] = (expensesByCategory[t.category || 'Outros'] || 0) + Number(t.amount);
+        });
+        return <BudgetSection currentExpenses={expensesByCategory} month={selectedMonth} year={selectedYear} />;
+      })()}
+
+      {/* Filters */}
       <div className="flex flex-col gap-3 mb-6 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
         {/* Row 1: Mês + Ano + Tipo */}
         <div className="grid grid-cols-3 gap-2">

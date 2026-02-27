@@ -11,6 +11,8 @@ const Settings = React.lazy(() => import('./pages/Settings'));
 const SplitExpenses = React.lazy(() => import('./pages/SplitExpenses'));
 const Investments = React.lazy(() => import('./pages/Investments'));
 const Goals = React.lazy(() => import('./pages/Goals'));
+const RecurringTransactions = React.lazy(() => import('./pages/RecurringTransactions'));
+const Onboarding = React.lazy(() => import('./pages/Onboarding'));
 const Layout = React.lazy(() => import('./components/Layout'));
 const Auth = React.lazy(() => import('./pages/Auth'));
 const Admin = React.lazy(() => import('./pages/Admin'));
@@ -18,6 +20,7 @@ const Landing = React.lazy(() => import('./pages/Landing'));
 const SharedLogin = React.lazy(() => import('./pages/SharedLogin'));
 const SharedDashboard = React.lazy(() => import('./pages/SharedDashboard'));
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { useDarkMode } from './hooks/useDarkMode';
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -84,11 +87,8 @@ const ProtectedRoute = () => {
 
 
 const App: React.FC = () => {
-  React.useEffect(() => {
-    // Enforce Light Mode
-    document.documentElement.classList.remove('dark');
-    document.documentElement.classList.add('light');
-  }, []);
+  // Respect user theme preference (stored in localStorage, fallback to system)
+  useDarkMode();
 
   return (
     <AuthProvider>
@@ -110,6 +110,7 @@ const App: React.FC = () => {
                 <Route path="/investments" element={<Investments />} />
                 <Route path="/split" element={<SplitExpenses />} />
                 <Route path="/goals" element={<Goals />} />
+                <Route path="/recurring" element={<RecurringTransactions />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
               </Route>
