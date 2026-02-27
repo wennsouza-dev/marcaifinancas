@@ -262,7 +262,7 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden min-h-0">
                     <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
                         {hasSupport && (
                             <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-4 border border-indigo-100 dark:border-indigo-500/20 overflow-hidden relative">
@@ -491,7 +491,7 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                         </div>
                     </div>
 
-                    <div className="px-6 py-4 bg-gray-50 dark:bg-black/20 border-t border-gray-100 dark:border-white/10 flex justify-end gap-3 flex-shrink-0">
+                    <div className="px-4 py-4 md:px-6 bg-gray-50 dark:bg-black/20 border-t border-gray-100 dark:border-white/10 flex justify-end gap-3 flex-shrink-0 z-10 sticky bottom-0 w-full">
                         <button
                             type="button"
                             onClick={onClose}
