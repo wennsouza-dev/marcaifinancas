@@ -1,8 +1,19 @@
--- Migration to add month and year to monthly_budgets
--- Defaulting existing global budgets to current month/year for safety.
+-- 1. Drop existing unique constraint dynamically
+DO $$
+DECLARE
+    const_name text;
+BEGIN
+    SELECT constraint_name INTO const_name
+    FROM information_schema.table_constraints
+    WHERE table_name = 'monthly_budgets' 
+      AND constraint_type = 'UNIQUE'
+      AND table_schema = 'public'
+    LIMIT 1;
 
--- 1. Drop existing unique constraint
-ALTER TABLE monthly_budgets DROP CONSTRAINT monthly_budgets_user_id_category_key;
+    IF const_name IS NOT NULL THEN
+        EXECUTE 'ALTER TABLE monthly_budgets DROP CONSTRAINT ' || const_name;
+    END IF;
+END $$;
 
 -- 2. Add new columns
 ALTER TABLE monthly_budgets ADD COLUMN month INT;
