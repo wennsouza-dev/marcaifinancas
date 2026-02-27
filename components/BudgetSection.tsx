@@ -14,33 +14,69 @@ const BudgetSection: React.FC<Props> = ({ currentExpenses, month, year }) => {
     const [editValue, setEditValue] = useState('');
     const [saving, setSaving] = useState(false);
 
+    const [applyToFuture, setApplyToFuture] = useState(true);
+
     const fetchBudgets = async () => {
         if (!user) return;
-        const { data } = await supabase.from('monthly_budgets').select('*').eq('user_id', user.id);
+        const sqlMonth = month + 1; // JS month is 0-indexed, SQL is 1-indexed
+        const { data } = await supabase.from('monthly_budgets').select('*')
+            .eq('user_id', user.id)
+            .eq('month', sqlMonth)
+            .eq('year', year);
         if (data) setBudgets(data);
     };
 
-    useEffect(() => { fetchBudgets(); }, [user]);
+    useEffect(() => { fetchBudgets(); }, [user, month, year]);
 
     const handleSave = async (category: string) => {
         if (!user || !editValue) return;
         setSaving(true);
         const amount = parseFloat(editValue.replace(',', '.'));
-        const existing = budgets.find(b => b.category === category);
-        if (existing?.id) {
-            await supabase.from('monthly_budgets').update({ amount }).eq('id', existing.id);
+        const sqlMonth = month + 1;
+
+        if (!applyToFuture) {
+            // Upsert for only this month
+            const { data: existing } = await supabase.from('monthly_budgets')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('category', category)
+                .eq('month', sqlMonth)
+                .eq('year', year)
+                .maybeSingle();
+
+            if (existing?.id) {
+                await supabase.from('monthly_budgets').update({ amount }).eq('id', existing.id);
+            } else {
+                await supabase.from('monthly_budgets').insert({ user_id: user.id, category, amount, month: sqlMonth, year });
+            }
         } else {
-            await supabase.from('monthly_budgets').insert({ user_id: user.id, category, amount });
+            // Apply to this month and next 24 months
+            const records = [];
+            for (let i = 0; i <= 24; i++) {
+                let m = sqlMonth + i;
+                let y = year;
+                while (m > 12) {
+                    m -= 12;
+                    y += 1;
+                }
+                records.push({ user_id: user.id, category, amount, month: m, year: y });
+            }
+            await supabase.from('monthly_budgets').upsert(records, { onConflict: 'user_id, category, month, year' });
         }
+
         await fetchBudgets();
         setEditingCat(null);
         setSaving(false);
     };
 
     const handleDelete = async (category: string) => {
-        const existing = budgets.find(b => b.category === category);
-        if (!existing?.id) return;
-        await supabase.from('monthly_budgets').delete().eq('id', existing.id);
+        if (!user) return;
+        const sqlMonth = month + 1;
+        await supabase.from('monthly_budgets').delete()
+            .eq('user_id', user.id)
+            .eq('category', category)
+            .eq('month', sqlMonth)
+            .eq('year', year);
         await fetchBudgets();
     };
 
@@ -112,6 +148,18 @@ const BudgetSection: React.FC<Props> = ({ currentExpenses, month, year }) => {
                                         onChange={e => setEditValue(e.target.value)}
                                         className="flex-1 py-2 text-sm bg-transparent focus:outline-none"
                                     />
+                                </div>
+                                <div className="w-full mt-1 flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id="applyFuture"
+                                        checked={applyToFuture}
+                                        onChange={e => setApplyToFuture(e.target.checked)}
+                                        className="rounded border-orange-300 text-orange-500 focus:ring-orange-500 w-4 h-4 cursor-pointer"
+                                    />
+                                    <label htmlFor="applyFuture" className="text-xs text-orange-800 dark:text-orange-200 cursor-pointer select-none font-medium">
+                                        Aplicar para este mês e todos os seguintes
+                                    </label>
                                 </div>
                                 <button
                                     disabled={saving || !editValue || editingCat === 'new'}
