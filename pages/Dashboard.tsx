@@ -12,10 +12,19 @@ import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import SmartAccountantWidget from '../components/SmartAccountantWidget';
 import FinancialAdvisorWidget from '../components/FinancialAdvisorWidget';
 import { useSmartAccountant } from '../hooks/useSmartAccountant';
+import SmartAlertBanner from '../components/SmartAlertBanner';
+import BalanceProjectionChart from '../components/BalanceProjectionChart';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<{
+    balance: number;
+    income: number;
+    expenses: number;
+    balanceTrend: number | null;
+    incomeTrend: number | null;
+    expensesTrend: number | null;
+  }>({
     balance: 0,
     income: 0,
     expenses: 0,
@@ -34,6 +43,8 @@ const Dashboard: React.FC = () => {
   const [modalType, setModalType] = useState<'income' | 'expense' | 'investment'>('expense');
   const [modalAudioText, setModalAudioText] = useState<string | undefined>(undefined);
   const [filteredForAnalysis, setFilteredForAnalysis] = useState<any[]>([]);
+  const [spendingAlerts, setSpendingAlerts] = useState<{ category: string; currentAmount: number; avgAmount: number; percentOver: number }[]>([]);
+  const [projectionData, setProjectionData] = useState<{ month: string; balance: number }[]>([]);
 
   // Filtering state
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -127,6 +138,76 @@ const Dashboard: React.FC = () => {
       });
       setChartData(formattedChartData);
 
+      // === SMART SPENDING ALERTS ===
+      // Compare this month's per-category expense vs average of last 3 months
+      const categoryMap: Record<string, number> = {};
+      filteredTransactions.filter(t => t.type === 'expense').forEach(t => {
+        const cat = t.category || 'Geral';
+        categoryMap[cat] = (categoryMap[cat] || 0) + Number(t.amount);
+      });
+
+      const alertThreshold = 0.40; // 40% above average triggers alert
+      const detectedAlerts: { category: string; currentAmount: number; avgAmount: number; percentOver: number }[] = [];
+
+      for (const [cat, currentAmount] of Object.entries(categoryMap)) {
+        // Build average over the 3 previous months
+        const monthlyAmounts: number[] = [];
+        for (let offset = 1; offset <= 3; offset++) {
+          const d = new Date(selectedYear, selectedMonth - offset, 1);
+          const pMonth = d.getMonth();
+          const pYear = d.getFullYear();
+          const pTotal = allTransactions
+            .filter(t => {
+              const ref = t.billing_date || t.date;
+              const td = new Date(ref + 'T00:00:00');
+              return t.type === 'expense' && (t.category || 'Geral') === cat && td.getMonth() === pMonth && td.getFullYear() === pYear;
+            })
+            .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+          monthlyAmounts.push(pTotal);
+        }
+        const nonZero = monthlyAmounts.filter(v => v > 0);
+        if (nonZero.length === 0) continue; // No history — skip
+        const avgAmount = nonZero.reduce((s, v) => s + v, 0) / nonZero.length;
+        const percentOver = (currentAmount - avgAmount) / avgAmount;
+        if (percentOver >= alertThreshold) {
+          detectedAlerts.push({ category: cat, currentAmount, avgAmount, percentOver: percentOver * 100 });
+        }
+      }
+
+      detectedAlerts.sort((a, b) => b.percentOver - a.percentOver);
+      setSpendingAlerts(detectedAlerts);
+      // ==============================
+
+      // === BALANCE PROJECTION ===
+      // Average monthly income and expenses from last 3 months
+      let totalIncome3 = 0;
+      let totalExpense3 = 0;
+      for (let offset = 1; offset <= 3; offset++) {
+        const d = new Date(selectedYear, selectedMonth - offset, 1);
+        const pm = d.getMonth();
+        const py = d.getFullYear();
+        const mts = allTransactions.filter(t => {
+          const ref = t.billing_date || t.date;
+          const td = new Date(ref + 'T00:00:00');
+          return td.getMonth() === pm && td.getFullYear() === py;
+        });
+        totalIncome3 += mts.filter(t => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount), 0);
+        totalExpense3 += mts.filter(t => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount), 0);
+      }
+      const avgMonthlyIncome = totalIncome3 / 3;
+      const avgMonthlyExpense = totalExpense3 / 3;
+
+      const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+      const proj: { month: string; balance: number }[] = [];
+      let runningBalance = balance;
+      for (let i = 1; i <= 3; i++) {
+        const fd = new Date(selectedYear, selectedMonth + i, 1);
+        runningBalance += avgMonthlyIncome - avgMonthlyExpense;
+        proj.push({ month: `${monthNames[fd.getMonth()]} ${fd.getFullYear()}`, balance: Math.round(runningBalance) });
+      }
+      setProjectionData(proj);
+      // ==========================
+
     } catch (error) {
       console.error('Error fetching dashboard:', error);
     } finally {
@@ -189,6 +270,9 @@ const Dashboard: React.FC = () => {
           <p className="text-lg font-bold text-text-main dark:text-white capitalize">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
         </div>
       </div>
+
+      {/* Smart Spending Alerts */}
+      <SmartAlertBanner alerts={spendingAlerts} month={selectedMonth} year={selectedYear} />
 
       {/* Stats Grid */}
       <div className="flex flex-col gap-6 mb-8">
@@ -323,6 +407,9 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Balance Projection Chart */}
+      <BalanceProjectionChart data={projectionData} currentBalance={stats.balance} />
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <button
