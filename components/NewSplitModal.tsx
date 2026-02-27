@@ -488,25 +488,26 @@ const NewSplitModal: React.FC<NewSplitModalProps> = ({ onClose, onSuccess }) => 
                                     ></label>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div className="px-4 py-4 md:px-6 bg-gray-50 dark:bg-black/20 border-t border-gray-100 dark:border-white/10 flex justify-end gap-3 flex-shrink-0 z-10 sticky bottom-0 w-full">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            disabled={loading}
-                            className="flex-1 md:flex-none py-3 md:py-2 px-4 rounded-xl md:rounded-lg font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="flex-1 md:flex-none py-3 md:py-2 px-4 rounded-xl md:rounded-lg font-bold text-white bg-primary hover:bg-primary-hover shadow-lg md:shadow-md shadow-primary/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {loading ? 'Criando...' : 'Criar Rateio'}
-                        </button>
+                            {/* Submit Buttons — inline so they're always reachable by scroll on mobile */}
+                            <div className="flex gap-3 pt-2 pb-4">
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    disabled={loading}
+                                    className="flex-1 py-3 rounded-xl font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="flex-1 py-3 rounded-xl font-bold text-white bg-primary hover:bg-primary-hover shadow-lg shadow-primary/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {loading ? 'Criando...' : 'Criar Rateio'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
