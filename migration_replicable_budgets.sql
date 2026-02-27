@@ -15,9 +15,9 @@ BEGIN
     END IF;
 END $$;
 
--- 2. Add new columns
-ALTER TABLE monthly_budgets ADD COLUMN month INT;
-ALTER TABLE monthly_budgets ADD COLUMN year INT;
+-- 2. Add new columns safely
+ALTER TABLE monthly_budgets ADD COLUMN IF NOT EXISTS month INT;
+ALTER TABLE monthly_budgets ADD COLUMN IF NOT EXISTS year INT;
 
 -- 3. Backfill existing records (assuming they were active for the current month)
 UPDATE monthly_budgets SET month = EXTRACT(MONTH FROM CURRENT_DATE), year = EXTRACT(YEAR FROM CURRENT_DATE) WHERE month IS NULL;
