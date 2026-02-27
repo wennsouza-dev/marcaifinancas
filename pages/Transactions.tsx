@@ -217,36 +217,49 @@ const Transactions: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters - Styled */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
-        <div className="flex gap-3 flex-1 overflow-x-auto pb-1 md:pb-0 scrollbar-hide snap-x">
-          <div className="flex gap-2 snap-start">
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border-none rounded-xl focus:ring-0 text-sm font-medium text-gray-700 cursor-pointer min-w-[120px]"
-            >
-              {['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'].map((m, i) => (
-                <option key={i} value={i}>{m}</option>
-              ))}
-            </select>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border-none rounded-xl focus:ring-0 text-sm font-medium text-gray-700 cursor-pointer min-w-[90px]"
-            >
-              {[2024, 2025, 2026, 2027].map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
+      {/* Filters - Reorganized into 2 rows, no horizontal scroll */}
+      <div className="flex flex-col gap-3 mb-6 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+        {/* Row 1: Mês + Ano + Tipo */}
+        <div className="grid grid-cols-3 gap-2">
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+            className="px-2 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-100 rounded-xl focus:ring-0 focus:outline-none text-xs font-semibold text-gray-700 cursor-pointer w-full"
+          >
+            {['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'].map((m, i) => (
+              <option key={i} value={i}>{m}</option>
+            ))}
+          </select>
 
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="px-2 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-100 rounded-xl focus:ring-0 focus:outline-none text-xs font-semibold text-gray-700 cursor-pointer w-full"
+          >
+            {[2024, 2025, 2026, 2027].map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="px-2 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-100 rounded-xl focus:ring-0 focus:outline-none text-xs font-semibold text-gray-700 cursor-pointer w-full"
+          >
+            <option value="todos">Todos</option>
+            <option value="income">Receitas</option>
+            <option value="expense">Despesas</option>
+          </select>
+        </div>
+
+        {/* Row 2: Categoria + Forma de Pagamento */}
+        <div className="grid grid-cols-2 gap-2">
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border-none rounded-xl focus:ring-0 text-sm font-medium text-gray-700 cursor-pointer min-w-[140px]"
+            className="px-2 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-100 rounded-xl focus:ring-0 focus:outline-none text-xs font-semibold text-gray-700 cursor-pointer w-full"
           >
-            <option value="Todas">Todas Categorias</option>
+            <option value="Todas">Todas Cats.</option>
             <option value="Alimentação">Alimentação</option>
             <option value="Transporte">Transporte</option>
             <option value="Lazer">Lazer</option>
@@ -257,25 +270,26 @@ const Transactions: React.FC = () => {
           <select
             value={filterPaymentMethod}
             onChange={(e) => setFilterPaymentMethod(e.target.value)}
-            className="px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border-none rounded-xl focus:ring-0 text-sm font-medium text-gray-700 cursor-pointer min-w-[140px]"
+            className="px-2 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-100 rounded-xl focus:ring-0 focus:outline-none text-xs font-semibold text-gray-700 cursor-pointer w-full"
           >
             <option value="Todos">Todos Meios</option>
             <option value="PIX">PIX</option>
-            <option value="Cartão de Crédito">Cartão de Crédito</option>
-            <option value="Cartão de Débito">Cartão de Débito</option>
+            <option value="Cartão de Crédito">Cartão Créd.</option>
+            <option value="Cartão de Débito">Cartão Déb.</option>
             <option value="Transferência">Transferência</option>
             <option value="Dinheiro">Dinheiro</option>
           </select>
         </div>
 
-        <div className="relative w-full md:w-80">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+        {/* Row 3: Search */}
+        <div className="relative w-full">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">search</span>
           <input
             type="text"
             placeholder="Buscar transação..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-none rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-medium text-text-main placeholder-gray-400"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-medium text-text-main placeholder-gray-400"
           />
         </div>
       </div>
