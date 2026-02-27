@@ -136,3 +136,86 @@ export const parseSplitTransactionFromAudio = async (text: string): Promise<Pars
         return null;
     }
 };
+
+// ========================
+// MONTHLY INSIGHT (Feature 1)
+// ========================
+export const generateMonthlyInsight = async (
+    monthName: string,
+    income: number,
+    expenses: number,
+    balance: number,
+    prevIncome: number,
+    prevExpenses: number,
+    topCategories: { category: string; amount: number }[]
+): Promise<string | null> => {
+    try {
+        if (!API_KEY) return null;
+
+        const catList = topCategories
+            .map(c => `${c.category}: R$ ${c.amount.toFixed(2)}`)
+            .join(', ');
+
+        const prompt = `
+Você é o MarcAI, um consultor financeiro brasileiro amigável e direto.
+Analise os dados financeiros do mês de ${monthName} e gere um parágrafo ÚNICO e CONCISO (máximo 3 frases) com insights práticos e personalizados em português.
+Seja encorajador quando o resultado for positivo, e honesto e construtivo quando for negativo.
+Não use listas, apenas texto corrido. Não use asteriscos nem markdown.
+
+Dados do mês:
+- Receitas: R$ ${income.toFixed(2)} (mês anterior: R$ ${prevIncome.toFixed(2)})
+- Despesas: R$ ${expenses.toFixed(2)} (mês anterior: R$ ${prevExpenses.toFixed(2)})
+- Saldo: R$ ${balance.toFixed(2)}
+- Maiores categorias de gasto: ${catList || 'Sem dados'}
+
+Responda apenas com o parágrafo de análise, sem introdução ou cabeçalho.
+        `.trim();
+
+        for (const modelName of MODELS_TO_TRY) {
+            try {
+                const model = genAI.getGenerativeModel({ model: modelName });
+                const result = await model.generateContent(prompt);
+                const text = (await result.response).text().trim();
+                if (text) return text;
+            } catch (err: any) {
+                console.warn(`generateMonthlyInsight: ${modelName} failed`, err.message);
+            }
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+};
+
+// ========================
+// CATEGORY SUGGESTION (Feature 2)
+// ========================
+export const suggestCategory = async (description: string): Promise<string | null> => {
+    if (!description || description.length < 3 || !API_KEY) return null;
+    try {
+        const prompt = `
+Você é um classificador de transações financeiras.
+Dado o nome de uma transação, retorne APENAS o nome da categoria mais adequada, sem explicações.
+Use EXATAMENTE uma dessas categorias: Alimentação, Transporte, Lazer, Moradia, Eletrônicos, Saúde, Educação, Salário, Freelance, Investimentos, Presentes, Outros.
+
+Transação: "${description}"
+Categoria:`.trim();
+
+        for (const modelName of MODELS_TO_TRY) {
+            try {
+                const model = genAI.getGenerativeModel({ model: modelName });
+                const result = await model.generateContent(prompt);
+                const text = (await result.response).text().trim();
+                const valid = ['Alimentação', 'Transporte', 'Lazer', 'Moradia', 'Eletrônicos', 'Saúde', 'Educação', 'Salário', 'Freelance', 'Investimentos', 'Presentes', 'Outros'];
+                const found = valid.find(c => text.startsWith(c));
+                if (found) return found;
+            } catch (err: any) {
+                console.warn(`suggestCategory: ${modelName} failed`, err.message);
+            }
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+};
+

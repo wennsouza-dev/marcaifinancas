@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
-import { parseTransactionFromAudio } from '../services/geminiService';
+import { parseTransactionFromAudio, suggestCategory } from '../services/geminiService';
 
 interface Props {
   onClose: () => void;
@@ -19,7 +19,24 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
   const [paymentMethod, setPaymentMethod] = useState('PIX');
   const [loading, setLoading] = useState(false);
   const [processingAudio, setProcessingAudio] = useState(false);
+  const [categorySuggestion, setCategorySuggestion] = useState<string | null>(null);
+  const [suggestingCategory, setSuggestingCategory] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user } = useAuth();
+
+  const handleDescriptionChange = (value: string) => {
+    setDescription(value);
+    setCategorySuggestion(null);
+    if (type !== 'expense') return; // Only suggest for expenses
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (value.trim().length < 3) return;
+    debounceRef.current = setTimeout(async () => {
+      setSuggestingCategory(true);
+      const suggestion = await suggestCategory(value.trim());
+      setSuggestingCategory(false);
+      if (suggestion) setCategorySuggestion(suggestion);
+    }, 700);
+  };
 
   const handleAudioResult = async (text: string) => {
     if (!text.trim()) return;
@@ -237,11 +254,42 @@ const NewExpenseModal: React.FC<Props> = ({ onClose, type = 'expense', onSuccess
               <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Descrição</label>
               <input
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => handleDescriptionChange(e.target.value)}
                 className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 placeholder-gray-400"
                 placeholder={type === 'expense' ? "Ex: Compra de Notebook" : type === 'investment' ? "Ex: CDB, Tesouro Direto" : "Ex: Salário Mensal"}
                 type="text"
               />
+              {/* AI Category Suggestion Chip */}
+              {type === 'expense' && (suggestingCategory || categorySuggestion) && (
+                <div className="mt-2 flex items-center gap-2">
+                  {suggestingCategory ? (
+                    <span className="flex items-center gap-1.5 text-[11px] text-indigo-500 font-medium">
+                      <span className="material-symbols-outlined text-[13px] animate-spin">progress_activity</span>
+                      Sugerindo categoria...
+                    </span>
+                  ) : categorySuggestion ? (
+                    <>
+                      <span className="text-[11px] text-gray-400">💡 Sugestão IA:</span>
+                      <button
+                        type="button"
+                        onClick={() => { setCategory(categorySuggestion); setCategorySuggestion(null); }}
+                        className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full hover:bg-indigo-100 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[12px]">auto_awesome</span>
+                        {categorySuggestion}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCategorySuggestion(null)}
+                        className="text-gray-300 hover:text-gray-400 transition-colors"
+                        title="Dispensar"
+                      >
+                        <span className="material-symbols-outlined text-[14px]">close</span>
+                      </button>
+                    </>
+                  ) : null}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Valor {isInstallment ? 'da Parcela' : 'Total'}</label>

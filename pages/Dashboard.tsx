@@ -14,6 +14,8 @@ import FinancialAdvisorWidget from '../components/FinancialAdvisorWidget';
 import { useSmartAccountant } from '../hooks/useSmartAccountant';
 import SmartAlertBanner from '../components/SmartAlertBanner';
 import BalanceProjectionChart from '../components/BalanceProjectionChart';
+import AIInsightCard from '../components/AIInsightCard';
+import { generateMonthlyInsight } from '../services/geminiService';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -45,6 +47,8 @@ const Dashboard: React.FC = () => {
   const [filteredForAnalysis, setFilteredForAnalysis] = useState<any[]>([]);
   const [spendingAlerts, setSpendingAlerts] = useState<{ category: string; currentAmount: number; avgAmount: number; percentOver: number }[]>([]);
   const [projectionData, setProjectionData] = useState<{ month: string; balance: number }[]>([]);
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [aiInsightLoading, setAiInsightLoading] = useState(false);
 
   // Filtering state
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -219,6 +223,38 @@ const Dashboard: React.FC = () => {
     fetchDashboardData();
   }, [user, selectedMonth, selectedYear]);
 
+  const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+  const generateInsight = async (income: number, expenses: number, balance: number, prevIncome: number, prevExpenses: number, allTxs: any[]) => {
+    if (income === 0 && expenses === 0) return;
+    setAiInsightLoading(true);
+    setAiInsight(null);
+    // Build top categories
+    const catMap: Record<string, number> = {};
+    allTxs.filter(t => t.type === 'expense').forEach(t => {
+      catMap[t.category || 'Outros'] = (catMap[t.category || 'Outros'] || 0) + Number(t.amount);
+    });
+    const topCats = Object.entries(catMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([category, amount]) => ({ category, amount }));
+    const insight = await generateMonthlyInsight(
+      MONTH_NAMES[selectedMonth],
+      income, expenses, balance,
+      prevIncome, prevExpenses,
+      topCats
+    );
+    setAiInsight(insight);
+    setAiInsightLoading(false);
+  };
+
+  useEffect(() => {
+    // Trigger AI insight whenever month data finishes loading
+    if (!loading && (stats.income > 0 || stats.expenses > 0)) {
+      generateInsight(stats.income, stats.expenses, stats.balance, 0, 0, filteredForAnalysis);
+    }
+  }, [loading, selectedMonth, selectedYear]);
+
   const openModal = (type: 'income' | 'expense' | 'investment', audioText?: string) => {
     setModalType(type);
     setModalAudioText(audioText);
@@ -270,6 +306,19 @@ const Dashboard: React.FC = () => {
           <p className="text-lg font-bold text-text-main dark:text-white capitalize">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
         </div>
       </div>
+
+      {/* AI Monthly Insight Card */}
+      <AIInsightCard
+        insight={aiInsight}
+        loading={aiInsightLoading}
+        monthName={`${MONTH_NAMES[selectedMonth]} ${selectedYear}`}
+        onRefresh={() => {
+          const prevMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
+          const prevYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
+          // We call with current stats — we don't re-fetch, just re-generate
+          generateInsight(stats.income, stats.expenses, stats.balance, 0, 0, recentTransactions);
+        }}
+      />
 
       {/* Smart Spending Alerts */}
       <SmartAlertBanner alerts={spendingAlerts} month={selectedMonth} year={selectedYear} />
