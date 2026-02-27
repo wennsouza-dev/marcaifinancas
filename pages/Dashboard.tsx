@@ -191,7 +191,25 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="flex flex-col gap-6 mb-8">
+        <div className="grid grid-cols-2 gap-6">
+          <StatCard
+            title="Entradas"
+            value={stats.income === 0 && recentTransactions.length === 0 ? "R$ --" : `R$ ${stats.income.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+            trend={stats.incomeTrend === null ? "Novo" : `${stats.incomeTrend > 0 ? '+' : ''}${Math.round(stats.incomeTrend)}%`}
+            trendUp={stats.incomeTrend === null || stats.incomeTrend >= 0}
+            icon="arrow_upward"
+            color="emerald"
+          />
+          <StatCard
+            title="Saídas"
+            value={stats.expenses === 0 && recentTransactions.length === 0 ? "R$ --" : `R$ ${stats.expenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+            trend={stats.expensesTrend === null ? "Novo" : `${stats.expensesTrend > 0 ? '+' : ''}${Math.round(stats.expensesTrend)}%`}
+            trendUp={stats.expensesTrend === null || stats.expensesTrend <= 0} // Expenses going down is good
+            icon="arrow_downward"
+            color="red"
+          />
+        </div>
         <StatCard
           title="Saldo Total"
           value={stats.balance === 0 && recentTransactions.length === 0 ? "R$ --" : `R$ ${stats.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
@@ -199,22 +217,6 @@ const Dashboard: React.FC = () => {
           trendUp={stats.balanceTrend === null || stats.balanceTrend >= 0}
           icon="account_balance_wallet"
           color="emerald"
-        />
-        <StatCard
-          title="Entradas"
-          value={stats.income === 0 && recentTransactions.length === 0 ? "R$ --" : `R$ ${stats.income.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-          trend={stats.incomeTrend === null ? "Novo" : `${stats.incomeTrend > 0 ? '+' : ''}${Math.round(stats.incomeTrend)}%`}
-          trendUp={stats.incomeTrend === null || stats.incomeTrend >= 0}
-          icon="arrow_upward"
-          color="emerald"
-        />
-        <StatCard
-          title="Saídas"
-          value={stats.expenses === 0 && recentTransactions.length === 0 ? "R$ --" : `R$ ${stats.expenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-          trend={stats.expensesTrend === null ? "Novo" : `${stats.expensesTrend > 0 ? '+' : ''}${Math.round(stats.expensesTrend)}%`}
-          trendUp={stats.expensesTrend === null || stats.expensesTrend <= 0} // Expenses going down is good
-          icon="arrow_downward"
-          color="red"
         />
       </div>
 

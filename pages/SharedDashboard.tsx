@@ -69,7 +69,13 @@ const SharedDashboard: React.FC = () => {
     const filteredExpenses = expenses.filter(expense => {
         const referenceDate = expense.billing_date || expense.date;
         const d = new Date(referenceDate + (referenceDate.includes('T') ? '' : 'T00:00:00'));
-        return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+        const itemMonth = d.getMonth();
+        const itemYear = d.getFullYear();
+
+        const isCurrentSelection = itemMonth === selectedMonth && itemYear === selectedYear;
+        const isPastUnpaid = !expense.is_paid && (itemYear < selectedYear || (itemYear === selectedYear && itemMonth < selectedMonth));
+
+        return isCurrentSelection || isPastUnpaid;
     });
 
     // Calculate Totals
@@ -157,62 +163,74 @@ const SharedDashboard: React.FC = () => {
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {filteredExpenses.map((expense) => (
-                            <div
-                                key={expense.participant_id}
-                                className={`bg-white p-4 rounded-xl shadow-sm border-l-4 transition-all hover:shadow-md ${expense.is_paid ? 'border-green-500 opacity-75' : 'border-emerald-600'}`}
-                            >
-                                <div className="flex justify-between items-start mb-2">
-                                    <div>
-                                        <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                                            {expense.description}
-                                            {expense.total_installments && expense.total_installments > 1 && (
-                                                <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
-                                                    {expense.installment_number}/{expense.total_installments}
+                        {filteredExpenses.map((expense) => {
+                            const referenceDate = expense.billing_date || expense.date;
+                            const d = new Date(referenceDate + (referenceDate.includes('T') ? '' : 'T00:00:00'));
+                            const isPastUnpaid = !expense.is_paid && (d.getFullYear() < selectedYear || (d.getFullYear() === selectedYear && d.getMonth() < selectedMonth));
+                            const pastMonthName = isPastUnpaid ? months[d.getMonth()] : undefined;
+
+                            return (
+                                <div
+                                    key={expense.participant_id}
+                                    className={`bg-white p-4 rounded-xl shadow-sm border-l-4 transition-all hover:shadow-md ${expense.is_paid ? 'border-green-500 opacity-75' : 'border-emerald-600'}`}
+                                >
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                            <h3 className="font-bold text-gray-900 flex flex-wrap items-center gap-2">
+                                                {expense.description}
+                                                {expense.total_installments && expense.total_installments > 1 && (
+                                                    <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                                                        {expense.installment_number}/{expense.total_installments}
+                                                    </span>
+                                                )}
+                                                {pastMonthName && (
+                                                    <span className="text-[10px] bg-red-50 text-red-600 px-2 py-0.5 rounded border border-red-100 font-bold uppercase">
+                                                        SALDO NÃO QUITADO MÊS ({pastMonthName})
+                                                    </span>
+                                                )}
+                                            </h3>
+                                            <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                                                <span className="material-symbols-outlined text-[12px]">person</span>
+                                                Lançado por {expense.creator_name || 'Usuário'}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className={`font-bold text-lg ${expense.is_paid ? 'text-green-600 line-through' : 'text-emerald-700'}`}>
+                                                {formatCurrency(expense.amount_owed)}
+                                            </p>
+                                            <p className="text-[10px] font-medium text-gray-400 mt-1 uppercase tracking-wider">Sua Parte</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center text-xs">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-gray-500 flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[14px]">calendar_today</span>
+                                                {formatDate(expense.date)}
+                                            </span>
+                                            {expense.billing_date && (
+                                                <span className="text-indigo-600 font-medium bg-indigo-50 px-2 py-0.5 rounded cursor-help" title="Fatura">
+                                                    Fat: {formatDate(expense.billing_date)}
                                                 </span>
                                             )}
-                                        </h3>
-                                        <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                                            <span className="material-symbols-outlined text-[12px]">person</span>
-                                            Lançado por {expense.creator_name || 'Usuário'}
-                                        </p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className={`font-bold text-lg ${expense.is_paid ? 'text-green-600 line-through' : 'text-emerald-700'}`}>
-                                            {formatCurrency(expense.amount_owed)}
-                                        </p>
-                                        <p className="text-[10px] font-medium text-gray-400 mt-1 uppercase tracking-wider">Sua Parte</p>
-                                    </div>
-                                </div>
-
-                                <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center text-xs">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-gray-500 flex items-center gap-1">
-                                            <span className="material-symbols-outlined text-[14px]">calendar_today</span>
-                                            {formatDate(expense.date)}
-                                        </span>
-                                        {expense.billing_date && (
-                                            <span className="text-indigo-600 font-medium bg-indigo-50 px-2 py-0.5 rounded cursor-help" title="Fatura">
-                                                Fat: {formatDate(expense.billing_date)}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div>
-                                        {expense.is_paid ? (
-                                            <span className="bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-[12px]">check_circle</span>
-                                                Pago
-                                            </span>
-                                        ) : (
-                                            <span className="bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-[12px]">schedule</span>
-                                                Pendente
-                                            </span>
-                                        )}
+                                        </div>
+                                        <div>
+                                            {expense.is_paid ? (
+                                                <span className="bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-[12px]">check_circle</span>
+                                                    Pago
+                                                </span>
+                                            ) : (
+                                                <span className="bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-[12px]">schedule</span>
+                                                    Pendente
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

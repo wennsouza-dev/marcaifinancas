@@ -163,37 +163,38 @@ const Transactions: React.FC = () => {
       </div>
 
       {/* Stats Cards - Reordered and Styled */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
-        {/* Entradas */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-4">
-            <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-              <span className="material-symbols-outlined text-emerald-600">trending_up</span>
+      <div className="flex flex-col gap-6 mb-8">
+        <div className="grid grid-cols-2 gap-6">
+          {/* Entradas */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+                <span className="material-symbols-outlined text-emerald-600">trending_up</span>
+              </div>
+              <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${trends.income === null || trends.income >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                <span className="material-symbols-outlined text-[10px]">{trends.income === null || trends.income >= 0 ? 'arrow_upward' : 'arrow_downward'}</span> {trends.income === null ? 'Novo' : `${Math.abs(Math.round(trends.income))}%`}
+              </span>
             </div>
-            <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${trends.income === null || trends.income >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-              <span className="material-symbols-outlined text-[10px]">{trends.income === null || trends.income >= 0 ? 'arrow_upward' : 'arrow_downward'}</span> {trends.income === null ? 'Novo' : `${Math.abs(Math.round(trends.income))}%`}
-            </span>
-          </div>
-          <div>
-            <span className="text-sm font-medium text-gray-500 mb-1 block">Entradas (Mês)</span>
-            <span className="text-2xl font-bold text-text-main">R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-          </div>
-        </div>
-
-        {/* Saídas */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-4">
-            <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
-              <span className="material-symbols-outlined text-red-500">trending_down</span>
+            <div>
+              <span className="text-sm font-medium text-gray-500 mb-1 block">Entradas (Mês)</span>
+              <span className="text-2xl font-bold text-text-main">R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
             </div>
-            <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${trends.expense === null || trends.expense <= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-              <span className="material-symbols-outlined text-[10px]">{trends.expense === null ? '--' : (trends.expense > 0 ? 'arrow_upward' : 'arrow_downward')}</span> {trends.expense === null ? 'Novo' : `${Math.abs(Math.round(trends.expense))}%`}
-            </span>
           </div>
-          <div>
-            <span className="text-sm font-medium text-gray-500 mb-1 block">Saídas (Mês)</span>
-            <span className="text-2xl font-bold text-text-main">R$ {totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+
+          {/* Saídas */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+                <span className="material-symbols-outlined text-red-500">trending_down</span>
+              </div>
+              <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${trends.expense === null || trends.expense <= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                <span className="material-symbols-outlined text-[10px]">{trends.expense === null ? '--' : (trends.expense > 0 ? 'arrow_upward' : 'arrow_downward')}</span> {trends.expense === null ? 'Novo' : `${Math.abs(Math.round(trends.expense))}%`}
+              </span>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-gray-500 mb-1 block">Saídas (Mês)</span>
+              <span className="text-2xl font-bold text-text-main">R$ {totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+            </div>
           </div>
         </div>
 
