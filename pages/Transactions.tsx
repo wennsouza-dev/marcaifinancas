@@ -171,9 +171,6 @@ const Transactions: React.FC = () => {
               <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
                 <span className="material-symbols-outlined text-emerald-600">trending_up</span>
               </div>
-              <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${trends.income === null || trends.income >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                <span className="material-symbols-outlined text-[10px]">{trends.income === null || trends.income >= 0 ? 'arrow_upward' : 'arrow_downward'}</span> {trends.income === null ? 'Novo' : `${Math.abs(Math.round(trends.income))}%`}
-              </span>
             </div>
             <div>
               <span className="text-sm font-medium text-gray-500 mb-1 block">Entradas (Mês)</span>
@@ -187,9 +184,6 @@ const Transactions: React.FC = () => {
               <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
                 <span className="material-symbols-outlined text-red-500">trending_down</span>
               </div>
-              <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${trends.expense === null || trends.expense <= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                <span className="material-symbols-outlined text-[10px]">{trends.expense === null ? '--' : (trends.expense > 0 ? 'arrow_upward' : 'arrow_downward')}</span> {trends.expense === null ? 'Novo' : `${Math.abs(Math.round(trends.expense))}%`}
-              </span>
             </div>
             <div>
               <span className="text-sm font-medium text-gray-500 mb-1 block">Saídas (Mês)</span>
@@ -204,9 +198,6 @@ const Transactions: React.FC = () => {
             <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-sm">
               <span className="material-symbols-outlined text-white">account_balance</span>
             </div>
-            <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-white/20 text-white backdrop-blur-sm`}>
-              <span className="material-symbols-outlined text-[10px]">{trends.balance === null || trends.balance >= 0 ? 'arrow_upward' : 'arrow_downward'}</span> {trends.balance === null ? 'Novo' : `${Math.abs(Math.round(trends.balance))}%`}
-            </span>
           </div>
           <div>
             <span className="text-sm font-medium text-white/80 mb-1 block">Saldo Atual</span>
