@@ -325,20 +325,20 @@ const Dashboard: React.FC = () => {
         <div className="grid grid-cols-2 gap-6">
           <StatCard
             title="Entradas"
-            value={stats.income === 0 && recentTransactions.length === 0 ? "R$ --" : `R$ ${stats.income.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+            value={stats.income === 0 && recentTransactions.length === 0 ? "R$ --" : `R$ ${stats.income.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             icon="arrow_upward"
             color="emerald"
           />
           <StatCard
             title="Saídas"
-            value={stats.expenses === 0 && recentTransactions.length === 0 ? "R$ --" : `R$ ${stats.expenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+            value={stats.expenses === 0 && recentTransactions.length === 0 ? "R$ --" : `R$ ${stats.expenses.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             icon="arrow_downward"
             color="red"
           />
         </div>
         <StatCard
           title="Saldo Total"
-          value={stats.balance === 0 && recentTransactions.length === 0 ? "R$ --" : `R$ ${stats.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+          value={stats.balance === 0 && recentTransactions.length === 0 ? "R$ --" : `R$ ${stats.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           icon="account_balance_wallet"
           color="emerald"
         />
@@ -411,7 +411,7 @@ const Dashboard: React.FC = () => {
                     <div className="flex flex-col items-end">
                       <span className={`text-sm font-bold whitespace-nowrap ${t.type === 'income' ? 'text-emerald-600' : 'text-expense'
                         }`}>
-                        {t.type === 'income' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        {t.type === 'income' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                       {t.total_installments > 0 && (
                         <span className="text-[10px] bg-primary/10 text-primary px-1.5 rounded font-bold">

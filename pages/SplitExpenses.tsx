@@ -292,7 +292,7 @@ const SplitExpenses: React.FC = () => {
     const finalY = (doc as any).lastAutoTable.finalY + 10;
     doc.setFontSize(14);
     doc.setTextColor(0);
-    doc.text(`Total a Receber: R$ ${totalToReceive.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 14, finalY);
+    doc.text(`Total a Receber: R$ ${totalToReceive.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 14, finalY);
 
     const fileName = friendFilter
       ? `Relatorio_Rateio_${friendFilter.name.replace(/\s+/g, '_')}_${monthName}_${selectedYear}.pdf`

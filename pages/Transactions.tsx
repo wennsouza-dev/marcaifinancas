@@ -175,7 +175,7 @@ const Transactions: React.FC = () => {
             </div>
             <div>
               <span className="text-sm font-medium text-gray-500 mb-1 block">Entradas (Mês)</span>
-              <span className="text-2xl font-bold text-text-main">R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              <span className="text-2xl font-bold text-text-main">R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
 
@@ -188,7 +188,7 @@ const Transactions: React.FC = () => {
             </div>
             <div>
               <span className="text-sm font-medium text-gray-500 mb-1 block">Saídas (Mês)</span>
-              <span className="text-2xl font-bold text-text-main">R$ {totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              <span className="text-2xl font-bold text-text-main">R$ {totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
         </div>
@@ -202,7 +202,7 @@ const Transactions: React.FC = () => {
           </div>
           <div>
             <span className="text-sm font-medium text-white/80 mb-1 block">Saldo Atual</span>
-            <span className="text-3xl font-bold text-white">R$ {totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+            <span className="text-3xl font-bold text-white">R$ {totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
           {/* Decorative Circle */}
           <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
@@ -375,7 +375,7 @@ const Transactions: React.FC = () => {
                 <div className="flex flex-col items-start sm:items-end">
                   <p className="text-xs text-gray-400 mb-0.5">{t.type === 'income' ? 'Recebido' : 'Pago'}</p>
                   <span className={`text-base font-bold whitespace-nowrap ${t.type === 'income' ? 'text-emerald-600' : 'text-expense'}`}>
-                    {t.type === 'income' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    {t.type === 'income' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                   {t.total_installments > 0 && (
                     <span className="text-[10px] bg-primary/10 text-primary px-1.5 rounded font-bold mt-1">

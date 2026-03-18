@@ -87,10 +87,10 @@ const Reports: React.FC = () => {
     doc.text('Resumo Anual', 20, 55);
 
     doc.setFontSize(10);
-    doc.text(`Total Receitas: R$ ${totalIncome.toLocaleString('pt-BR')}`, 20, 65);
-    doc.text(`Total Despesas: R$ ${totalExpenses.toLocaleString('pt-BR')}`, 75, 65);
-    doc.text(`Saldo Final: R$ ${annualBalance.toLocaleString('pt-BR')}`, 130, 65);
-    doc.text(`Investido: R$ ${totalInvested.toLocaleString('pt-BR')}`, 20, 75);
+    doc.text(`Total Receitas: R$ ${totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 20, 65);
+    doc.text(`Total Despesas: R$ ${totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 75, 65);
+    doc.text(`Saldo Final: R$ ${annualBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 130, 65);
+    doc.text(`Investido: R$ ${totalInvested.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 20, 75);
 
     // Monthly Table
     autoTable(doc, {
@@ -98,9 +98,9 @@ const Reports: React.FC = () => {
       head: [['Mês', 'Receitas', 'Despesas', 'Saldo']],
       body: monthlyData.map(d => [
         new Date(selectedYear, d.month).toLocaleString('pt-BR', { month: 'long' }),
-        `R$ ${d.income.toLocaleString('pt-BR')}`,
-        `R$ ${d.expense.toLocaleString('pt-BR')}`,
-        `R$ ${(d.income - d.expense).toLocaleString('pt-BR')}`
+        `R$ ${d.income.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        `R$ ${d.expense.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        `R$ ${(d.income - d.expense).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       ]),
       theme: 'striped',
       headStyles: { fillColor: [26, 96, 32] }
@@ -112,7 +112,7 @@ const Reports: React.FC = () => {
       head: [['Categoria', 'Valor Total', '% do Total']],
       body: sortedCategories.map(c => [
         c.name,
-        `R$ ${c.amount.toLocaleString('pt-BR')}`,
+        `R$ ${c.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         `${((c.amount / totalExpenses) * 100).toFixed(1)}%`
       ]),
       theme: 'grid',
@@ -146,7 +146,7 @@ const Reports: React.FC = () => {
         .map(t => [
           t.category,
           t.type === 'income' ? 'Receita' : 'Despesa',
-          `R$ ${Number(t.amount).toLocaleString('pt-BR')}`,
+          `R$ ${Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
           new Date(t.date).toLocaleDateString('pt-BR')
         ]),
       theme: 'grid',
@@ -200,10 +200,10 @@ const Reports: React.FC = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        <ReportSummary title="Total Receitas" value={`R$ ${totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} trend="" icon="payments" color="primary" />
-        <ReportSummary title="Total Despesas" value={`R$ ${totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} trend="" icon="money_off" color="expense" />
-        <ReportSummary title="Saldo Final" value={`R$ ${annualBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} trend="" icon="account_balance_wallet" color={annualBalance >= 0 ? "success" : "red"} />
-        <ReportSummary title="Você investiu" value={`R$ ${totalInvested.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} trend="" icon="trending_up" color="blue" />
+        <ReportSummary title="Total Receitas" value={`R$ ${totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} trend="" icon="payments" color="primary" />
+        <ReportSummary title="Total Despesas" value={`R$ ${totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} trend="" icon="money_off" color="expense" />
+        <ReportSummary title="Saldo Final" value={`R$ ${annualBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} trend="" icon="account_balance_wallet" color={annualBalance >= 0 ? "success" : "red"} />
+        <ReportSummary title="Você investiu" value={`R$ ${totalInvested.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} trend="" icon="trending_up" color="blue" />
       </div>
 
       {/* Charts Row */}
@@ -315,9 +315,9 @@ const Reports: React.FC = () => {
                     <span className="material-symbols-outlined text-red-500">picture_as_pdf</span>
                     {new Date(selectedYear, d.month).toLocaleString('pt-BR', { month: 'long' })}
                   </td>
-                  <td className="px-6 py-4 text-emerald-600 font-bold text-right">R$ {d.income.toLocaleString('pt-BR')}</td>
-                  <td className="px-6 py-4 text-red-600 font-bold text-right">R$ {d.expense.toLocaleString('pt-BR')}</td>
-                  <td className="px-6 py-4 text-text-main dark:text-white font-bold text-right">R$ {(d.income - d.expense).toLocaleString('pt-BR')}</td>
+                  <td className="px-6 py-4 text-emerald-600 font-bold text-right">R$ {d.income.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="px-6 py-4 text-red-600 font-bold text-right">R$ {d.expense.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="px-6 py-4 text-text-main dark:text-white font-bold text-right">R$ {(d.income - d.expense).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                   <td className="px-6 py-4 text-right">
                     <button
                       onClick={() => handleExportMonthlyPDF(d.month)}
