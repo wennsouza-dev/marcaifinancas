@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import NewExpenseModal from '../components/NewExpenseModal';
 import EditTransactionModal from '../components/EditTransactionModal';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
+import BatchExpenseModal from '../components/BatchExpenseModal';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import BudgetSection from '../components/BudgetSection';
 
 const Transactions: React.FC = () => {
   const [showNewExpenseModal, setShowNewExpenseModal] = useState(false);
+  const [showBatchExpenseModal, setShowBatchExpenseModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
@@ -146,6 +148,13 @@ const Transactions: React.FC = () => {
           <p className="text-gray-500 text-sm mt-2">Gerencie suas receitas e despesas com inteligência.</p>
         </div>
         <div className="flex gap-3">
+          <button
+            onClick={() => setShowBatchExpenseModal(true)}
+            className="flex items-center gap-2 h-10 px-5 rounded-lg bg-white border border-gray-200 text-gray-600 text-sm font-bold hover:bg-gray-50 transition-colors shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[20px] filled">library_add</span>
+            Lote
+          </button>
           <button
             onClick={() => handleOpenModal('expense')}
             className="flex items-center gap-2 h-10 px-5 rounded-lg bg-white border border-red-100 text-red-500 text-sm font-bold hover:bg-red-50 transition-colors shadow-sm"
@@ -413,6 +422,14 @@ const Transactions: React.FC = () => {
         <NewExpenseModal
           onClose={() => setShowNewExpenseModal(false)}
           type={modalType}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {showBatchExpenseModal && (
+        <BatchExpenseModal
+          onClose={() => setShowBatchExpenseModal(false)}
+          type="expense"
           onSuccess={handleSuccess}
         />
       )}

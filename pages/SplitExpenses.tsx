@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import AddFriendModal from '../components/AddFriendModal';
 import NewSplitModal from '../components/NewSplitModal';
+import BatchSplitModal from '../components/BatchSplitModal';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -12,6 +13,7 @@ const SplitExpenses: React.FC = () => {
   const navigate = useNavigate();
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [showNewSplit, setShowNewSplit] = useState(false);
+  const [showBatchSplit, setShowBatchSplit] = useState(false);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [friendBalances, setFriendBalances] = useState<any[]>([]);
   const [friends, setFriends] = useState<any[]>([]);
@@ -325,6 +327,14 @@ const SplitExpenses: React.FC = () => {
               <span className="sm:hidden">Meus Rateios</span>
             </button>
             <button
+              onClick={() => setShowBatchSplit(true)}
+              className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-white dark:bg-white/5 border border-indigo-200 dark:border-white/10 hover:bg-indigo-50 dark:hover:bg-white/10 transition-colors shadow-sm text-indigo-700 dark:text-gray-200 text-sm font-bold"
+            >
+              <span className="material-symbols-outlined text-[20px]">groups</span>
+              <span className="hidden sm:inline">Rateio em Lote</span>
+              <span className="sm:hidden">Lote</span>
+            </button>
+            <button
               onClick={() => setShowAddFriend(true)}
               className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors shadow-sm text-gray-700 dark:text-gray-200 text-sm font-bold"
             >
@@ -488,6 +498,7 @@ const SplitExpenses: React.FC = () => {
       </div>
       {showAddFriend && <AddFriendModal onClose={() => setShowAddFriend(false)} onSuccess={fetchData} />}
       {showNewSplit && <NewSplitModal onClose={() => setShowNewSplit(false)} onSuccess={fetchData} />}
+      {showBatchSplit && <BatchSplitModal onClose={() => setShowBatchSplit(false)} onSuccess={fetchData} />}
     </>
   );
 };
